@@ -39,14 +39,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    await fs.mkdir(uploadDir, { recursive: true });
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    const diskPath = path.join(uploadDir, validation.safeFileName);
-    await fs.writeFile(diskPath, buffer);
+    let publicUrl = '';
 
-    const publicUrl = `/uploads/${validation.safeFileName}`;
+    try {
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      await fs.mkdir(uploadDir, { recursive: true });
+      const diskPath = path.join(uploadDir, validation.safeFileName);
+      await fs.writeFile(diskPath, buffer);
+      publicUrl = `/uploads/${validation.safeFileName}`;
+    } catch {
+      // Serverless read-only filesystem fallback (Vercel)
+      const base64 = buffer.toString('base64');
+      publicUrl = `data:${file.type};base64,${base64}`;
+    }
 
     const asset = await prisma.mediaAsset.create({
       data: {

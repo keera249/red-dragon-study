@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Trash2,
+  Upload,
   Users,
 } from 'lucide-react';
 import { AuthenticatedActor } from '@/lib/rbac';
@@ -43,6 +44,92 @@ type TabKey =
   | 'contact'
   | 'employees'
   | 'settings';
+
+function ImageUploadField({
+  label,
+  value,
+  onChange,
+  placeholder = 'رابط الصورة أو اختر ملفاً من جهازك',
+}: {
+  label?: string;
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      const dataUrl = uploadEvent.target?.result as string;
+      if (dataUrl) {
+        onChange(dataUrl);
+        setUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+
+    // Also attempt backend upload
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('isGenuinePhoto', 'true');
+    fetch('/api/admin/media/upload', {
+      method: 'POST',
+      body: formData,
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.asset?.filePath) {
+          onChange(data.asset.filePath);
+        }
+      })
+      .catch((err) => console.error('Upload error:', err))
+      .finally(() => setUploading(false));
+  };
+
+  return (
+    <div className="space-y-1.5">
+      {label && <label className="block font-bold text-slate-700 text-xs mb-1">{label}</label>}
+      <div className="flex items-center gap-2">
+        {value && (
+          <img
+            src={value}
+            alt="Preview"
+            className="h-9 w-9 rounded-lg object-cover border border-slate-200 shrink-0 bg-slate-50"
+          />
+        )}
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-xs focus:border-brand-700 focus:outline-none"
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onFileChange}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-brand-300 bg-brand-50 px-3 py-2 text-xs font-bold text-brand-800 hover:bg-brand-100 shrink-0 transition"
+          title="رفع صورة من جهازك"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          <span>{uploading ? 'جاري الرفع...' : 'رفع صورة'}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
   const router = useRouter();
@@ -853,15 +940,12 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
                         />
                       </div>
-                      <div>
-                        <label className="block font-bold text-slate-700 mb-1">شعار الجامعة (Logo URL)</label>
-                        <input
-                          placeholder="/logo.jpeg"
-                          value={newUni.logoUrl}
-                          onChange={(e) => setNewUni({ ...newUni, logoUrl: e.target.value })}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
-                        />
-                      </div>
+                      <ImageUploadField
+                        label="شعار الجامعة (University Logo)"
+                        value={newUni.logoUrl}
+                        onChange={(val) => setNewUni({ ...newUni, logoUrl: val })}
+                        placeholder="رابط الشعار أو اضغط رفع صورة من جهازك"
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -1284,38 +1368,42 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           </button>
                         </div>
                         {uniCampusImages.map((img, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
+                          <div key={idx} className="space-y-1.5 rounded-xl border border-slate-200 bg-white p-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <ImageUploadField
+                                  value={img.imageUrl}
+                                  onChange={(val) => {
+                                    const list = [...uniCampusImages];
+                                    list[idx].imageUrl = val;
+                                    setUniCampusImages(list);
+                                  }}
+                                  placeholder="رابط الصورة أو اضغط رفع صورة من جهازك"
+                                />
+                              </div>
+                              {uniCampusImages.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setUniCampusImages(uniCampusImages.filter((_, i) => i !== idx))
+                                  }
+                                  className="text-red-500 hover:text-red-700 font-bold px-2 py-1"
+                                  title="حذف الصورة"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </div>
                             <input
-                              placeholder="رابط الصورة (Image URL) *"
-                              value={img.imageUrl}
-                              onChange={(e) => {
-                                const list = [...uniCampusImages];
-                                list[idx].imageUrl = e.target.value;
-                                setUniCampusImages(list);
-                              }}
-                              className="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-1.5"
-                            />
-                            <input
-                              placeholder="تعليق الصورة (Caption)"
+                              placeholder="تعليق الصورة (Caption) مثال: الحرم الجامعي / المكتبة"
                               value={img.captionEn}
                               onChange={(e) => {
                                 const list = [...uniCampusImages];
                                 list[idx].captionEn = e.target.value;
                                 setUniCampusImages(list);
                               }}
-                              className="w-1/3 rounded-xl border border-slate-300 bg-white px-2.5 py-1.5"
+                              className="w-full rounded-lg border border-slate-200 px-2.5 py-1 text-xs"
                             />
-                            {uniCampusImages.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setUniCampusImages(uniCampusImages.filter((_, i) => i !== idx))
-                                }
-                                className="text-red-500 hover:text-red-700 font-bold px-1"
-                              >
-                                ×
-                              </button>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -1338,38 +1426,42 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           </button>
                         </div>
                         {uniAccomImages.map((img, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
+                          <div key={idx} className="space-y-1.5 rounded-xl border border-slate-200 bg-white p-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <ImageUploadField
+                                  value={img.imageUrl}
+                                  onChange={(val) => {
+                                    const list = [...uniAccomImages];
+                                    list[idx].imageUrl = val;
+                                    setUniAccomImages(list);
+                                  }}
+                                  placeholder="رابط صورة السكن أو اضغط رفع صورة من جهازك"
+                                />
+                              </div>
+                              {uniAccomImages.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setUniAccomImages(uniAccomImages.filter((_, i) => i !== idx))
+                                  }
+                                  className="text-red-500 hover:text-red-700 font-bold px-2 py-1"
+                                  title="حذف الصورة"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </div>
                             <input
-                              placeholder="رابط صورة السكن *"
-                              value={img.imageUrl}
-                              onChange={(e) => {
-                                const list = [...uniAccomImages];
-                                list[idx].imageUrl = e.target.value;
-                                setUniAccomImages(list);
-                              }}
-                              className="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-1.5"
-                            />
-                            <input
-                              placeholder="تعليق الصورة"
+                              placeholder="تعليق الصورة (Caption) مثال: غرفة السكن الطلابي"
                               value={img.captionEn}
                               onChange={(e) => {
                                 const list = [...uniAccomImages];
                                 list[idx].captionEn = e.target.value;
                                 setUniAccomImages(list);
                               }}
-                              className="w-1/3 rounded-xl border border-slate-300 bg-white px-2.5 py-1.5"
+                              className="w-full rounded-lg border border-slate-200 px-2.5 py-1 text-xs"
                             />
-                            {uniAccomImages.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setUniAccomImages(uniAccomImages.filter((_, i) => i !== idx))
-                                }
-                                className="text-red-500 hover:text-red-700 font-bold px-1"
-                              >
-                                ×
-                              </button>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -2094,14 +2186,12 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                       </option>
                     ))}
                   </select>
-                  <input
-                    required
-                    placeholder="Image URL *"
+                  <ImageUploadField
                     value={newGalleryImage.imageUrl}
-                    onChange={(e) =>
-                      setNewGalleryImage({ ...newGalleryImage, imageUrl: e.target.value })
+                    onChange={(val) =>
+                      setNewGalleryImage({ ...newGalleryImage, imageUrl: val })
                     }
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                    placeholder="رابط الصورة أو اضغط رفع صورة من جهازك *"
                   />
                   <input
                     placeholder="Caption (EN)"
