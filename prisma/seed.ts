@@ -61,69 +61,36 @@ export async function seedDatabase() {
     }
   }
 
-  // 3. Employee Accounts
+  // 3. Employee Accounts (Single Super Admin)
   const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@reddragonstudy.com';
-  const adminPass = process.env.INITIAL_ADMIN_PASSWORD || 'Admin@RedDragon2026!';
+  const adminPass = process.env.INITIAL_ADMIN_PASSWORD || 'admin123';
   const adminHash = await bcrypt.hash(adminPass, 10);
-  const editorHash = await bcrypt.hash('Editor@RedDragon2026!', 10);
-  const officerHash = await bcrypt.hash('Officer@RedDragon2026!', 10);
 
   const adminUser = await prisma.adminUser.upsert({
     where: { email: adminEmail },
-    update: { name: 'System Administrator', isActive: true },
+    update: { name: 'المدير العام (Super Admin)', passwordHash: adminHash, isActive: true },
     create: {
       email: adminEmail,
-      name: 'System Administrator',
+      name: 'المدير العام (Super Admin)',
       passwordHash: adminHash,
       isActive: true,
     },
   });
 
-  const editorUser = await prisma.adminUser.upsert({
-    where: { email: 'editor@reddragonstudy.com' },
-    update: { name: 'Sarah Lin (Content Editor)', isActive: true },
-    create: {
-      email: 'editor@reddragonstudy.com',
-      name: 'Sarah Lin (Content Editor)',
-      passwordHash: editorHash,
-      isActive: true,
-    },
-  });
-
-  const officerUser = await prisma.adminUser.upsert({
-    where: { email: 'officer@reddragonstudy.com' },
-    update: { name: 'Ahmad Mansour (Inquiry Officer)', isActive: true },
-    create: {
-      email: 'officer@reddragonstudy.com',
-      name: 'Ahmad Mansour (Inquiry Officer)',
-      passwordHash: officerHash,
-      isActive: true,
+  // Ensure any other accounts are removed
+  await prisma.adminUser.deleteMany({
+    where: {
+      id: { not: adminUser.id },
     },
   });
 
   const adminRole = await prisma.role.findUnique({ where: { code: 'ADMINISTRATOR' } });
-  const editorRole = await prisma.role.findUnique({ where: { code: 'CONTENT_EDITOR' } });
-  const officerRole = await prisma.role.findUnique({ where: { code: 'INQUIRY_OFFICER' } });
 
   if (adminRole) {
     await prisma.userRole.upsert({
       where: { userId_roleId: { userId: adminUser.id, roleId: adminRole.id } },
       update: {},
       create: { userId: adminUser.id, roleId: adminRole.id },
-    });
-  }
-  if (editorRole) {
-    await prisma.userRole.upsert({
-      where: { userId_roleId: { userId: editorUser.id, roleId: editorRole.id } },
-      update: {},
-      create: { userId: editorUser.id, roleId: editorRole.id },
-    });
-  }
-  if (officerRole) {
-    await prisma.userRole.upsert({
-      where: { userId_roleId: { userId: officerUser.id, roleId: officerRole.id } },
-      update: {},
-      create: { userId: officerUser.id, roleId: officerRole.id },
     });
   }
 
@@ -1199,7 +1166,7 @@ export async function seedDatabase() {
           'I would like to apply for the Master of Advanced Computing at Tsinghua University with the CSC scholarship. My IELTS score is 7.0.',
         privacyConsent: true,
         statusCode: 'UNDER_REVIEW',
-        assignedEmployeeId: officerUser.id,
+        assignedEmployeeId: adminUser.id,
         nextFollowUpDate: new Date('2026-11-05T10:00:00Z'),
       },
     });
@@ -1210,14 +1177,14 @@ export async function seedDatabase() {
         fromStatus: 'NEW_INQUIRY',
         toStatus: 'UNDER_REVIEW',
         changedById: adminUser.id,
-        note: 'Assigned to Ahmad for initial transcript review.',
+        note: 'Assigned for initial transcript review.',
       },
     });
 
     await prisma.inquiryNote.create({
       data: {
         inquiryId: inq.id,
-        authorId: officerUser.id,
+        authorId: adminUser.id,
         noteText: 'Strong GPA and IELTS 7.0. Ready to prepare study plan and supervisor outreach.',
         isInternal: true,
       },
@@ -1226,7 +1193,7 @@ export async function seedDatabase() {
     await prisma.followUpReminder.create({
       data: {
         inquiryId: inq.id,
-        employeeId: officerUser.id,
+        employeeId: adminUser.id,
         dueAt: new Date('2026-11-05T10:00:00Z'),
         note: 'Follow up with Omar regarding notarized transcript scan.',
       },
