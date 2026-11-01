@@ -16,7 +16,7 @@ node_modules/
 # local database & sqlite files
 *.db
 *.db-journal
-dev.db
+!prisma/dev.db
 
 # environment variables
 .env
