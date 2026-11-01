@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, Mail, ShieldCheck } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@reddragonstudy.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -95,16 +95,6 @@ export default function AdminLoginPage() {
             {loading ? 'Signing In...' : 'Sign In to Dashboard'}
           </button>
         </form>
-
-        <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 text-xs text-slate-600 space-y-1">
-          <div className="font-bold text-slate-800 flex items-center gap-1.5">
-            <ShieldCheck className="h-4 w-4 text-brand-700" />
-            <span>Role-Based Access Accounts (Seeded):</span>
-          </div>
-          <p>• Admin: <code>admin@reddragonstudy.com</code> / <code>Admin@RedDragon2026!</code></p>
-          <p>• Editor: <code>editor@reddragonstudy.com</code> / <code>Editor@RedDragon2026!</code></p>
-          <p>• Officer: <code>officer@reddragonstudy.com</code> / <code>Officer@RedDragon2026!</code></p>
-        </div>
 
         <div className="text-center">
           <Link href="/" className="text-xs font-semibold text-slate-500 hover:text-brand-700">
