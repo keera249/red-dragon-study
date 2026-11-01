@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js build output
+/.next/
+/out/
+
+# production
+/build
+
+# local database & sqlite files
+*.db
+*.db-journal
+dev.db
+
+# environment variables
+.env
+.env*.local
+!.env.example
+
+# debug & logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db

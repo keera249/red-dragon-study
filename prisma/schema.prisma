@@ -1,0 +1,756 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  passwordHash   String
+  isActive       Boolean  @default(true)
+  sessionVersion Int      @default(1)
+  lastLoginAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  userRoles           UserRole[]
+  assignedInquiries   StudentInquiry[]      @relation("AssignedEmployee")
+  inquiryAssignments  InquiryAssignment[]   @relation("AssignedToEmployee")
+  assignedByRecords   InquiryAssignment[]   @relation("AssignedByEmployee")
+  inquiryNotes        InquiryNote[]
+  statusChanges       InquiryStatusHistory[]
+  followUpReminders   FollowUpReminder[]
+  verificationRecords VerificationRecord[]
+  uploadedMedia       MediaAsset[]
+  auditLogs           AuditLog[]
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  nameEn      String
+  nameAr      String
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  module      String
+  description String
+
+  rolePermissions RolePermission[]
+}
+
+model UserRole {
+  id        String    @id @default(cuid())
+  userId    String
+  roleId    String
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model University {
+  id                    String   @id @default(cuid())
+  slug                  String   @unique
+  nameEn                String
+  nameAr                String?
+  nameZh                String?
+  logoUrl               String?
+  shortDescriptionEn    String?
+  shortDescriptionAr    String?
+  detailedDescriptionEn String?
+  detailedDescriptionAr String?
+  universityType        String?
+  country               String?  @default("China")
+  province              String?
+  city                  String?
+  district              String?
+  address               String?
+  latitude              Float?
+  longitude             Float?
+  mapUrl                String?
+  officialWebsite       String?
+  officialAdmissionsUrl String?
+  officialContact       String?
+  accreditationInfoEn   String?
+  accreditationInfoAr   String?
+  recognitionInfoEn     String?
+  recognitionInfoAr     String?
+  rankingInfoEn         String?
+  rankingInfoAr         String?
+  accommodationAvailable Boolean?
+  accommodationDescEn   String?
+  accommodationDescAr   String?
+  whatsappNumber        String?
+  internalNotes         String?
+  isFeatured            Boolean  @default(false)
+  acceptingApplications Boolean  @default(true)
+  status                String   @default("DRAFT") // DRAFT, PUBLISHED, UNPUBLISHED, DISABLED, ARCHIVED, DELETED
+  verificationStatus    String   @default("PENDING_VERIFICATION")
+  sourceUrl             String?
+  lastVerifiedAt        DateTime?
+  seoTitleEn            String?
+  seoTitleAr            String?
+  seoDescriptionEn      String?
+  seoDescriptionAr      String?
+  canonicalUrl          String?
+  noIndex               Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  slugRedirects         UniversitySlugRedirect[]
+  programs              UniversityProgram[]
+  fees                  UniversityFee[]
+  scholarshipLinks      ScholarshipUniversity[]
+  sharedRequirements    UniversityRequirement[]
+  specificRequirements  UniversitySpecificRequirement[]
+  galleries             MediaGallery[]
+  deadlines             ApplicationDeadline[]
+  whatsappTemplates     WhatsAppTemplate[]
+  inquiries             StudentInquiry[]
+
+  @@index([status])
+  @@index([city])
+  @@index([province])
+}
+
+model UniversitySlugRedirect {
+  id           String     @id @default(cuid())
+  oldSlug      String     @unique
+  universityId String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+}
+
+model UniversityProgram {
+  id                    String    @id @default(cuid())
+  universityId          String
+  university            University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  slug                  String
+  nameEn                String
+  nameAr                String?
+  nameZh                String?
+  degreeLevel           String    // BACHELOR, MASTER, PHD, LANGUAGE, DIPLOMA
+  disciplineEn          String?
+  disciplineAr          String?
+  languageOfInstruction String    // ENGLISH, CHINESE, BILINGUAL
+  durationEn            String?
+  durationAr            String?
+  intakePeriodsEn       String?
+  intakePeriodsAr       String?
+  tuitionAmount         Float?
+  tuitionCurrency       String    @default("CNY")
+  tuitionPeriod         String    @default("ANNUALLY") // MONTHLY, SEMESTERLY, ANNUALLY, ONE_TIME
+  applicationFeeAmount  Float?
+  applicationFeeCurrency String   @default("CNY")
+  eligibilityEn         String?
+  eligibilityAr         String?
+  languageReqEn         String?
+  languageReqAr         String?
+  academicReqEn         String?
+  academicReqAr         String?
+  entranceExamsEn       String?
+  entranceExamsAr       String?
+  openingDate           DateTime?
+  deadlineDate          DateTime?
+  officialProgramUrl    String?
+  additionalNotesEn     String?
+  additionalNotesAr     String?
+  internalNotes         String?
+  status                String    @default("PUBLISHED") // DRAFT, PUBLISHED, UNPUBLISHED, DISABLED, ARCHIVED, DELETED
+  verificationStatus    String    @default("PENDING_VERIFICATION")
+  sourceUrl             String?
+  lastVerifiedAt        DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  intakes               ProgramIntake[]
+  fees                  UniversityFee[]
+  scholarshipLinks      ScholarshipProgram[]
+  specificRequirements  UniversitySpecificRequirement[]
+  deadlines             ApplicationDeadline[]
+  whatsappTemplates     WhatsAppTemplate[]
+  inquiries             StudentInquiry[]
+
+  @@unique([universityId, slug])
+  @@index([degreeLevel])
+  @@index([languageOfInstruction])
+  @@index([status])
+}
+
+model ProgramIntake {
+  id           String            @id @default(cuid())
+  programId    String
+  program      UniversityProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  nameEn       String
+  nameAr       String?
+  academicYear String
+  openingDate  DateTime?
+  deadlineDate DateTime?
+  status       String            @default("PUBLISHED")
+  createdAt    DateTime          @default(now())
+}
+
+model UniversityFee {
+  id             String             @id @default(cuid())
+  universityId   String
+  university     University         @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  programId      String?
+  program        UniversityProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  category       String             // TUITION, ACCOMMODATION, APPLICATION, REGISTRATION, INSURANCE, OTHER_MANDATORY, LIVING_EXPENSES
+  titleEn        String
+  titleAr        String?
+  amount         Float
+  currency       String             @default("CNY")
+  period         String             @default("ANNUALLY") // MONTHLY, SEMESTERLY, ANNUALLY, ONE_TIME
+  academicYear   String?
+  isConfirmed    Boolean            @default(false) // true = officially confirmed, false = estimated
+  sourceUrl      String?
+  verifiedDate   DateTime?
+  notesEn        String?
+  notesAr        String?
+  status         String             @default("PUBLISHED")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([universityId])
+  @@index([category])
+}
+
+model Scholarship {
+  id                        String    @id @default(cuid())
+  slug                      String    @unique
+  nameEn                    String
+  nameAr                    String?
+  providerEn                String?
+  providerAr                String?
+  category                  String?   // GOVERNMENT, PROVINCIAL, UNIVERSITY, CONFUCIOUS, SILK_ROAD, OTHER
+  fundingType               String    // FULL, PARTIAL
+  tuitionCoverageEn         String?
+  tuitionCoverageAr         String?
+  accommodationCoverageEn   String?
+  accommodationCoverageAr   String?
+  stipendAmount             Float?
+  stipendCurrency           String?   @default("CNY")
+  stipendPeriod             String?   @default("MONTHLY")
+  otherBenefitsEn           String?
+  otherBenefitsAr           String?
+  eligibilityEn             String?
+  eligibilityAr             String?
+  eligibleNationalities     String?
+  degreeLevelsJson          String?   // JSON array of applicable degree levels
+  languageRequirementsEn    String?
+  languageRequirementsAr    String?
+  requiredDocumentsEn       String?
+  requiredDocumentsAr       String?
+  openingDate               DateTime?
+  deadlineDate              DateTime?
+  durationEn                String?
+  durationAr                String?
+  renewalConditionsEn       String?
+  renewalConditionsAr       String?
+  officialUrl               String?
+  applicationInstructionsEn String?
+  applicationInstructionsAr String?
+  additionalNotesEn         String?
+  additionalNotesAr         String?
+  internalNotes             String?
+  isFeatured                Boolean   @default(false)
+  status                    String    @default("DRAFT") // DRAFT, PUBLISHED, UNPUBLISHED, DISABLED, ARCHIVED, DELETED
+  verificationStatus        String    @default("PENDING_VERIFICATION")
+  sourceUrl                 String?
+  lastVerifiedAt            DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  universityLinks           ScholarshipUniversity[]
+  programLinks              ScholarshipProgram[]
+  deadlines                 ApplicationDeadline[]
+  whatsappTemplates         WhatsAppTemplate[]
+  inquiries                 StudentInquiry[]
+
+  @@index([status])
+  @@index([fundingType])
+}
+
+model ScholarshipUniversity {
+  id            String      @id @default(cuid())
+  scholarshipId String
+  universityId  String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  university    University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([scholarshipId, universityId])
+}
+
+model ScholarshipProgram {
+  id            String            @id @default(cuid())
+  scholarshipId String
+  programId     String
+  scholarship   Scholarship       @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  program       UniversityProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([scholarshipId, programId])
+}
+
+model GlobalRequirement {
+  id                  String   @id @default(cuid())
+  code                String   @unique
+  nameEn              String
+  nameAr              String?
+  descriptionEn       String?
+  descriptionAr       String?
+  instructionsEn      String?
+  instructionsAr      String?
+  supportingDocUrl    String?
+  isRequiredDefault   Boolean  @default(true)
+  degreeLevelsJson    String?  // JSON array e.g. ["BACHELOR","MASTER","PHD"]
+  languageTracksJson  String?  // JSON array e.g. ["ENGLISH","CHINESE"]
+  displayOrder        Int      @default(0)
+  isEnabled           Boolean  @default(true)
+  status              String   @default("PUBLISHED") // DRAFT, PUBLISHED, UNPUBLISHED, DISABLED, ARCHIVED, DELETED
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  universityAssignments UniversityRequirement[]
+}
+
+model UniversityRequirement {
+  id            String             @id @default(cuid())
+  universityId  String
+  requirementId String
+  university    University         @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  requirement   GlobalRequirement  @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  displayOrder  Int                @default(0)
+  isEnabled     Boolean            @default(true)
+  status        String             @default("PUBLISHED")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  override      RequirementOverride?
+
+  @@unique([universityId, requirementId])
+}
+
+model RequirementOverride {
+  id                      String                @id @default(cuid())
+  universityRequirementId String                @unique
+  universityRequirement   UniversityRequirement @relation(fields: [universityRequirementId], references: [id], onDelete: Cascade)
+  isRequiredOverride      Boolean?
+  customNameEn            String?
+  customNameAr            String?
+  customDescriptionEn     String?
+  customDescriptionAr     String?
+  customInstructionsEn    String?
+  customInstructionsAr    String?
+  customSupportingDocUrl  String?
+  isExcluded              Boolean               @default(false)
+  updatedAt               DateTime              @updatedAt
+}
+
+model UniversitySpecificRequirement {
+  id               String             @id @default(cuid())
+  universityId     String
+  university       University         @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  programId        String?
+  program          UniversityProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  nameEn           String
+  nameAr           String?
+  descriptionEn    String?
+  descriptionAr    String?
+  instructionsEn   String?
+  instructionsAr   String?
+  supportingDocUrl String?
+  isRequired       Boolean            @default(true)
+  displayOrder     Int                @default(0)
+  isEnabled        Boolean            @default(true)
+  status           String             @default("PUBLISHED") // DRAFT, PUBLISHED, UNPUBLISHED, DISABLED, ARCHIVED, DELETED
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model MediaAsset {
+  id                 String         @id @default(cuid())
+  fileName           String
+  filePath           String
+  mimeType           String
+  sizeBytes          Int
+  altEn              String?
+  altAr              String?
+  captionEn          String?
+  captionAr          String?
+  sourceInfo         String?
+  sourceUrl          String?
+  verificationStatus String         @default("VERIFIED")
+  isGenuinePhoto     Boolean        @default(true)
+  uploadedById       String?
+  uploadedBy         AdminUser?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt          DateTime       @default(now())
+
+  galleryImages      GalleryImage[]
+}
+
+model MediaGallery {
+  id               String         @id @default(cuid())
+  universityId     String
+  university       University     @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  category         String         // CAMPUS, BUILDINGS, CLASSROOMS, LABORATORIES, LIBRARIES, ACCOMMODATION, DORMITORY_ROOMS, SHARED_FACILITIES, CAFETERIAS, SPORTS, SURROUNDING_AREA, CUSTOM
+  customCategoryEn String?
+  customCategoryAr String?
+  titleEn          String
+  titleAr          String?
+  descriptionEn    String?
+  descriptionAr    String?
+  isAccommodation  Boolean        @default(false)
+  coverImageUrl    String?
+  displayOrder     Int            @default(0)
+  isEnabled        Boolean        @default(true)
+  status           String         @default("PUBLISHED") // DRAFT, PUBLISHED, UNPUBLISHED, DISABLED, ARCHIVED, DELETED
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  images           GalleryImage[]
+}
+
+model GalleryImage {
+  id                 String       @id @default(cuid())
+  galleryId          String
+  gallery            MediaGallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  mediaAssetId       String?
+  mediaAsset         MediaAsset?  @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  imageUrl           String
+  altEn              String?
+  altAr              String?
+  captionEn          String?
+  captionAr          String?
+  descriptionEn      String?
+  descriptionAr      String?
+  sourceInfo         String?
+  verificationStatus String       @default("VERIFIED")
+  displayOrder       Int          @default(0)
+  isPublished        Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model ApplicationDeadline {
+  id                 String             @id @default(cuid())
+  titleEn            String
+  titleAr            String?
+  universityId       String?
+  university         University?        @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  programId          String?
+  program            UniversityProgram? @relation(fields: [programId], references: [id], onDelete: Cascade)
+  scholarshipId      String?
+  scholarship        Scholarship?       @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  intakeNameEn       String?
+  intakeNameAr       String?
+  academicYear       String
+  openingDate        DateTime?
+  closingDate        DateTime?
+  timezone           String             @default("Asia/Shanghai")
+  showNotAnnounced   Boolean            @default(false)
+  expiredBehavior    String             @default("KEEP_VISIBLE") // KEEP_VISIBLE, ARCHIVE, UNPUBLISH
+  sourceUrl          String?
+  verificationStatus String             @default("VERIFIED")
+  lastVerifiedAt     DateTime?
+  status             String             @default("PUBLISHED")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model VerificationRecord {
+  id                  String     @id @default(cuid())
+  entityType          String     // UNIVERSITY, PROGRAM, SCHOLARSHIP, FEE, DEADLINE, ACCOMMODATION
+  entityId            String
+  entityTitle         String
+  status              String     @default("PENDING_VERIFICATION") // VERIFIED, PENDING_VERIFICATION, REQUIRES_REVIEW, OUTDATED, UNABLE_TO_VERIFY
+  sourceUrl           String?
+  sourceType          String?    // OFFICIAL_WEBSITE, ADMISSIONS_BROCHURE, DIRECT_UNIVERSITY_CONFIRMATION, MINISTRY_PORTAL
+  lastVerifiedDate    DateTime?
+  verifiedById        String?
+  verifiedBy          AdminUser? @relation(fields: [verifiedById], references: [id], onDelete: SetNull)
+  internalNotes       String?
+  nextReviewDate      DateTime?
+  academicYear        String?
+  previousValuesJson  String?
+  showPublicIndicator Boolean    @default(true)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@index([entityType, entityId])
+  @@index([status])
+}
+
+model WebsitePage {
+  id                   String   @id @default(cuid())
+  slug                 String   @unique
+  titleEn              String
+  titleAr              String?
+  subtitleEn           String?
+  subtitleAr           String?
+  contentEn            String?
+  contentAr            String?
+  metaTitleEn          String?
+  metaTitleAr          String?
+  metaDescriptionEn    String?
+  metaDescriptionAr    String?
+  canonicalUrl         String?
+  ogImageUrl           String?
+  noIndex              Boolean  @default(false)
+  enabledLanguagesJson String   @default("[\"ar\",\"en\"]")
+  isSystemPage         Boolean  @default(false)
+  isEnabled            Boolean  @default(true)
+  status               String   @default("PUBLISHED") // DRAFT, PUBLISHED, UNPUBLISHED, DISABLED, ARCHIVED, DELETED
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model HomepageSection {
+  id            String   @id @default(cuid())
+  sectionKey    String   @unique
+  titleEn       String?
+  titleAr       String?
+  subtitleEn    String?
+  subtitleAr    String?
+  descriptionEn String?
+  descriptionAr String?
+  buttonTextEn  String?
+  buttonTextAr  String?
+  buttonUrl     String?
+  secondaryButtonTextEn String?
+  secondaryButtonTextAr String?
+  secondaryButtonUrl    String?
+  imageUrl      String?
+  configJson    String?  // JSON for selected university IDs, scholarship IDs, steps, etc.
+  displayOrder  Int      @default(0)
+  isEnabled     Boolean  @default(true)
+  status        String   @default("PUBLISHED") // DRAFT, PUBLISHED
+  updatedAt     DateTime @updatedAt
+}
+
+model NavigationItem {
+  id           String   @id @default(cuid())
+  labelEn      String
+  labelAr      String
+  href         String
+  pageSlug     String?
+  location     String   @default("HEADER") // HEADER, FOOTER
+  displayOrder Int      @default(0)
+  isEnabled    Boolean  @default(true)
+  openInNewTab Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+}
+
+model ContactSetting {
+  id                         String   @id @default("default")
+  defaultWhatsappNumber      String?
+  globalWhatsappEnabled      Boolean  @default(true)
+  buttonTextEn               String   @default("Chat on WhatsApp")
+  buttonTextAr               String   @default("تواصل عبر واتساب")
+  buttonPlacement            String   @default("BOTH") // FLOATING, INLINE, BOTH
+  defaultMessageEn           String   @default("Hello Red Dragon Study, I would like to inquire about studying in China.")
+  defaultMessageAr           String   @default("مرحباً فريق التنين الأحمر للدراسة، أود الاستفسار عن الدراسة في الصين.")
+  contactEmail               String?
+  phoneDisplay               String?
+  addressEn                  String?
+  addressAr                  String?
+  workingHoursEn             String?
+  workingHoursAr             String?
+  socialLinksJson            String?
+  inquiryFieldsConfigJson    String?
+  comparisonFieldsConfigJson String?
+  updatedAt                  DateTime @updatedAt
+}
+
+model WhatsAppTemplate {
+  id                     String             @id @default(cuid())
+  name                   String
+  scope                  String             @default("GLOBAL") // GLOBAL, UNIVERSITY, PROGRAM, SCHOLARSHIP
+  universityId           String?
+  university             University?        @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  programId              String?
+  program                UniversityProgram? @relation(fields: [programId], references: [id], onDelete: Cascade)
+  scholarshipId          String?
+  scholarship            Scholarship?       @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  whatsappNumberOverride String?
+  templateEn             String
+  templateAr             String?
+  isEnabled              Boolean            @default(true)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+}
+
+model InquiryStatusConfig {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  labelEn      String
+  labelAr      String
+  color        String   @default("blue")
+  displayOrder Int      @default(0)
+  isEnabled    Boolean  @default(true)
+}
+
+model StudentInquiry {
+  id                   String             @id @default(cuid())
+  inquiryNumber        String             @unique
+  studentName          String
+  email                String?
+  whatsappNumber       String?
+  countryOfResidence   String?
+  nationality          String?
+  universityId         String?
+  university           University?        @relation(fields: [universityId], references: [id], onDelete: SetNull)
+  programId            String?
+  program              UniversityProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  scholarshipId        String?
+  scholarship          Scholarship?       @relation(fields: [scholarshipId], references: [id], onDelete: SetNull)
+  intendedIntake       String?
+  currentQualification String?
+  category             String?            @default("GENERAL_ADMISSION")
+  message              String
+  privacyConsent       Boolean            @default(true)
+  statusCode           String             @default("NEW_INQUIRY")
+  assignedEmployeeId   String?
+  assignedEmployee     AdminUser?         @relation("AssignedEmployee", fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+  lastFollowUpDate     DateTime?
+  nextFollowUpDate     DateTime?
+  isDeleted            Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  assignments          InquiryAssignment[]
+  notes                InquiryNote[]
+  statusHistory        InquiryStatusHistory[]
+  followUpReminders    FollowUpReminder[]
+
+  @@index([statusCode])
+  @@index([assignedEmployeeId])
+  @@index([createdAt])
+}
+
+model InquiryAssignment {
+  id           String         @id @default(cuid())
+  inquiryId    String
+  inquiry      StudentInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  assignedToId String
+  assignedTo   AdminUser      @relation("AssignedToEmployee", fields: [assignedToId], references: [id], onDelete: Cascade)
+  assignedById String?
+  assignedBy   AdminUser?     @relation("AssignedByEmployee", fields: [assignedById], references: [id], onDelete: SetNull)
+  notes        String?
+  assignedAt   DateTime       @default(now())
+}
+
+model InquiryNote {
+  id         String         @id @default(cuid())
+  inquiryId  String
+  inquiry    StudentInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     AdminUser?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  noteText   String
+  isInternal Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+}
+
+model InquiryStatusHistory {
+  id          String         @id @default(cuid())
+  inquiryId   String
+  inquiry     StudentInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  fromStatus  String?
+  toStatus    String
+  changedById String?
+  changedBy   AdminUser?     @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  note        String?
+  createdAt   DateTime       @default(now())
+}
+
+model FollowUpReminder {
+  id          String         @id @default(cuid())
+  inquiryId   String
+  inquiry     StudentInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    AdminUser      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  dueAt       DateTime
+  note        String
+  isCompleted Boolean        @default(false)
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+}
+
+model SystemSetting {
+  id                     String   @id @default("default")
+  siteNameEn             String   @default("Red Dragon Study")
+  siteNameAr             String   @default("التنين الأحمر للدراسة في الصين")
+  logoUrl                String   @default("/logo.jpeg")
+  defaultLanguage        String   @default("ar")
+  supportedLanguagesJson String   @default("[\"ar\",\"en\"]")
+  timezone               String   @default("Asia/Shanghai")
+  defaultCurrency        String   @default("CNY")
+  exchangeRatesJson      String   @default("{\"CNY\":1,\"USD\":0.14,\"SAR\":0.52}")
+  itemsPerPage           Int      @default(9)
+  deadlineWarningDays    Int      @default(30)
+  maintenanceMode        Boolean  @default(false)
+  privacyNoticeEn        String   @default("We collect only the information needed to assist with your university admission inquiry and never share your personal data with unauthorized third parties.")
+  privacyNoticeAr        String   @default("نحن نجمع فقط المعلومات اللازمة لمساعدتك في استفسار القبول الجامعي الخاص بك ولا نشارك بياناتك الشخصية مع أطراف ثالثة غير مصرح لها.")
+  retentionDays          Int      @default(365)
+  seoDefaultTitleEn      String   @default("Red Dragon Study | China University Admissions & Scholarships")
+  seoDefaultTitleAr      String   @default("التنين الأحمر للدراسة | القبول الجامعي والمنح الدراسية في الصين")
+  seoDefaultDescEn       String   @default("Discover accredited Chinese universities, academic programs, scholarships, and admission requirements with Red Dragon Study.")
+  seoDefaultDescAr       String   @default("اكتشف الجامعات الصينية المعتمدة والبرامج الأكاديمية والمنح الدراسية ومتطلبات القبول مع مؤسسة التنين الأحمر للدراسة.")
+  updatedAt              DateTime @updatedAt
+}
+
+model FaqItem {
+  id           String   @id @default(cuid())
+  questionEn   String
+  questionAr   String?
+  answerEn     String
+  answerAr     String?
+  category     String   @default("GENERAL")
+  displayOrder Int      @default(0)
+  isEnabled    Boolean  @default(true)
+  status       String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AuditLog {
+  id           String     @id @default(cuid())
+  actorId      String?
+  actor        AdminUser? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail   String?
+  action       String
+  entityType   String
+  entityId     String?
+  summary      String
+  metadataJson String?
+  ipAddress    String?
+  createdAt    DateTime   @default(now())
+
+  @@index([createdAt])
+  @@index([entityType])
+}
