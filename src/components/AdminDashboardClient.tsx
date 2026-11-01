@@ -47,6 +47,8 @@ type TabKey =
 export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [uniSubTab, setUniSubTab] = useState<'universities' | 'programs' | 'scholarships' | 'requirements'>('universities');
+  const [settingsSubTab, setSettingsSubTab] = useState<'system' | 'employees' | 'content'>('system');
   const [toast, setToast] = useState<string | null>(null);
 
   // Module States
@@ -101,7 +103,6 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
     address: '',
     universityType: 'جامعة بحثية حكومية (Double First-Class)',
     officialWebsite: '',
-    officialAdmissionsUrl: '',
     logoUrl: '/logo.jpeg',
     shortDescriptionEn: '',
     shortDescriptionAr: '',
@@ -271,10 +272,12 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
         const res = await fetch('/api/admin/overview');
         if (res.ok) setOverview(await res.json());
       } else if (tab === 'universities') {
-        const [uRes, rRes, sRes] = await Promise.all([
+        const [uRes, rRes, sRes, pRes, fRes] = await Promise.all([
           fetch('/api/admin/universities'),
           fetch('/api/admin/requirements'),
           fetch('/api/admin/scholarships'),
+          fetch('/api/admin/programs'),
+          fetch('/api/admin/fees'),
         ]);
         if (uRes.ok) {
           const d = await uRes.json();
@@ -295,6 +298,8 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
           const s = await sRes.json();
           setScholarships(s.scholarships || []);
         }
+        if (pRes.ok) setPrograms((await pRes.json()).programs || []);
+        if (fRes.ok) setFees((await fRes.json()).fees || []);
       } else if (tab === 'programs') {
         const [uRes, pRes, fRes] = await Promise.all([
           fetch('/api/admin/universities'),
@@ -344,8 +349,14 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
         const res = await fetch('/api/admin/employees');
         if (res.ok) setEmployeeData(await res.json());
       } else if (tab === 'settings') {
-        const res = await fetch('/api/admin/settings');
-        if (res.ok) setSettingsData(await res.json());
+        const [sRes, eRes, cRes] = await Promise.all([
+          fetch('/api/admin/settings'),
+          fetch('/api/admin/employees'),
+          fetch('/api/admin/content'),
+        ]);
+        if (sRes.ok) setSettingsData(await sRes.json());
+        if (eRes.ok) setEmployeeData(await eRes.json());
+        if (cRes.ok) setContentData(await cRes.json());
       }
     } catch (e) {
       console.error('Error loading tab data:', e);
@@ -365,25 +376,30 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
   const can = (perm: string) =>
     actor.roles.includes('ADMINISTRATOR') || actor.permissions.includes(perm);
 
-  const navTabs: Array<{ key: TabKey; label: string; icon: any; show: boolean }> = [
-    { key: 'overview', label: 'Overview', icon: LayoutDashboard, show: true },
-    { key: 'universities', label: 'Universities', icon: Building2, show: can('universities:read') },
-    { key: 'programs', label: 'Programs & Fees', icon: BookOpen, show: can('programs:read') },
-    { key: 'scholarships', label: 'Scholarships', icon: Award, show: can('scholarships:read') },
-    { key: 'requirements', label: 'Requirements Library', icon: FileCheck2, show: can('requirements:read') },
-    { key: 'galleries', label: 'Media & Galleries', icon: ImageIcon, show: can('media:read') },
-    { key: 'deadlines', label: 'Deadlines', icon: Calendar, show: can('deadlines:read') },
+  const navTabs: Array<{ key: TabKey; label: string; labelAr: string; icon: any; show: boolean }> = [
+    { key: 'overview', label: 'Overview', labelAr: 'نظرة عامة', icon: LayoutDashboard, show: true },
+    {
+      key: 'universities',
+      label: 'Universities & Admissions',
+      labelAr: 'الجامعات والبرامج والمنح',
+      icon: Building2,
+      show: can('universities:read'),
+    },
     {
       key: 'inquiries',
       label: 'Student Inquiries',
+      labelAr: 'استفسارات الطلاب',
       icon: MessageSquare,
       show: can('inquiries:read_all') || can('inquiries:read_assigned'),
     },
-    { key: 'verification', label: 'Verification Center', icon: ShieldCheck, show: can('verification:read') },
-    { key: 'content', label: 'Website & SEO', icon: Globe, show: can('content:read') },
-    { key: 'contact', label: 'WhatsApp & Contact', icon: PhoneCall, show: can('contact:manage') },
-    { key: 'employees', label: 'Employees & Roles', icon: Users, show: can('employees:manage') },
-    { key: 'settings', label: 'System & Audit', icon: Settings, show: can('settings:manage') },
+    { key: 'contact', label: 'WhatsApp & Contact', labelAr: 'الواتساب والتواصل', icon: PhoneCall, show: can('contact:manage') },
+    {
+      key: 'settings',
+      label: 'Settings & Team',
+      labelAr: 'الموقع والموظفين',
+      icon: Settings,
+      show: can('settings:manage') || can('employees:manage') || can('content:manage'),
+    },
   ];
 
   return (
@@ -402,7 +418,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
           {navTabs
             .filter((t) => t.show)
             .map((t) => {
@@ -412,14 +428,17 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                   key={t.key}
                   type="button"
                   onClick={() => setActiveTab(t.key)}
-                  className={`w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold transition ${
+                  className={`w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold transition text-right ${
                     activeTab === t.key
                       ? 'bg-brand-700 text-white shadow'
                       : 'text-slate-400 hover:bg-slate-900 hover:text-white'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
-                  <span>{t.label}</span>
+                  <Icon className="h-4 w-4 shrink-0 text-brand-400" />
+                  <div className="flex-1 text-left">
+                    <div className="text-xs font-bold text-slate-100">{t.labelAr}</div>
+                    <div className="text-[10px] text-slate-400 font-medium">{t.label}</div>
+                  </div>
                 </button>
               );
             })}
@@ -567,6 +586,65 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
           {/* 2. UNIVERSITIES TAB */}
           {activeTab === 'universities' && (
             <div className="space-y-6">
+              {/* Internal Sub-Tabs for Universities & Admissions Hub */}
+              <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+                <button
+                  type="button"
+                  onClick={() => setUniSubTab('universities')}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    uniSubTab === 'universities'
+                      ? 'bg-brand-700 text-white shadow'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  الجامعات الصينية وإضافة شاملة ({universities.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUniSubTab('programs');
+                    loadTabData('programs');
+                  }}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    uniSubTab === 'programs'
+                      ? 'bg-brand-700 text-white shadow'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  البرامج الأكاديمية والرسوم ({programs.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUniSubTab('scholarships');
+                    loadTabData('scholarships');
+                  }}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    uniSubTab === 'scholarships'
+                      ? 'bg-brand-700 text-white shadow'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  المنح الدراسية ({scholarships.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUniSubTab('requirements');
+                    loadTabData('requirements');
+                  }}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    uniSubTab === 'requirements'
+                      ? 'bg-brand-700 text-white shadow'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  مكتبة المتطلبات العامة ({reqData?.globalRequirements?.length || 0})
+                </button>
+              </div>
+
+              {uniSubTab === 'universities' && (
+                <>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200">
                 <div>
                   <h2 className="text-base font-extrabold text-slate-900">
@@ -657,7 +735,6 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                         address: '',
                         universityType: 'جامعة بحثية حكومية (Double First-Class)',
                         officialWebsite: '',
-                        officialAdmissionsUrl: '',
                         logoUrl: '/logo.jpeg',
                         shortDescriptionEn: '',
                         shortDescriptionAr: '',
@@ -773,17 +850,6 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           placeholder="https://..."
                           value={newUni.officialWebsite}
                           onChange={(e) => setNewUni({ ...newUni, officialWebsite: e.target.value })}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-700 mb-1">رابط بوابة القبول الدولي</label>
-                        <input
-                          placeholder="https://..."
-                          value={newUni.officialAdmissionsUrl}
-                          onChange={(e) =>
-                            setNewUni({ ...newUni, officialAdmissionsUrl: e.target.value })
-                          }
                           className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
                         />
                       </div>
@@ -1477,11 +1543,13 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                   </tbody>
                 </table>
               </div>
+              </>
+            )}
             </div>
           )}
 
           {/* 3. PROGRAMS & FEES TAB */}
-          {activeTab === 'programs' && (
+          {(activeTab === 'programs' || (activeTab === 'universities' && uniSubTab === 'programs')) && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Add Program */}
@@ -1686,7 +1754,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
           )}
 
           {/* 4. SCHOLARSHIPS TAB */}
-          {activeTab === 'scholarships' && (
+          {(activeTab === 'scholarships' || (activeTab === 'universities' && uniSubTab === 'scholarships')) && (
             <div className="space-y-6">
               {can('scholarships:write') && (
                 <form
@@ -1785,7 +1853,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
           )}
 
           {/* 5. SHARED REQUIREMENTS & OVERRIDES TAB */}
-          {activeTab === 'requirements' && (
+          {(activeTab === 'requirements' || (activeTab === 'universities' && uniSubTab === 'requirements')) && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <form
@@ -2404,7 +2472,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
           )}
 
           {/* 10. WEBSITE CONTENT, NAVIGATION & CUSTOM PAGES TAB */}
-          {activeTab === 'content' && (
+          {(activeTab === 'content' || (activeTab === 'settings' && settingsSubTab === 'content')) && (
             <div className="space-y-6">
               <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
                 <div className="flex items-center justify-between">
@@ -2629,7 +2697,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
           )}
 
           {/* 12. EMPLOYEES & RBAC TAB */}
-          {activeTab === 'employees' && (
+          {(activeTab === 'employees' || (activeTab === 'settings' && settingsSubTab === 'employees')) && (
             <div className="space-y-6">
               <form
                 onSubmit={async (e) => {
@@ -2730,8 +2798,53 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
           )}
 
           {/* 13. SYSTEM SETTINGS & BACKUP TAB */}
-          {activeTab === 'settings' && settingsData.systemSetting && (
+          {activeTab === 'settings' && (
             <div className="space-y-6">
+              {/* Internal Sub-Tabs for Settings Hub */}
+              <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('system')}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    settingsSubTab === 'system'
+                      ? 'bg-brand-700 text-white shadow'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  إعدادات النظام والنسخ الاحتياطي
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSettingsSubTab('employees');
+                    loadTabData('employees');
+                  }}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    settingsSubTab === 'employees'
+                      ? 'bg-brand-700 text-white shadow'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  الموظفين والصلاحيات ({employeeData.employees?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSettingsSubTab('content');
+                    loadTabData('content');
+                  }}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    settingsSubTab === 'content'
+                      ? 'bg-brand-700 text-white shadow'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  أقسام الموقع والصفحات
+                </button>
+              </div>
+
+              {settingsSubTab === 'system' && settingsData.systemSetting && (
+                <div className="space-y-6">
               <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 text-xs">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-bold text-slate-900">System Configuration</h2>
@@ -2815,6 +2928,8 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                   Save System Settings
                 </button>
               </div>
+            </div>
+            )}
             </div>
           )}
         </main>

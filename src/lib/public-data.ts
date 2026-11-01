@@ -104,7 +104,7 @@ export function sanitizePublicUniversity(uni: any, warningDays = 30, allowPrevie
   return {
     ...safeUni,
     officialWebsite: isValidPublicUrl(uni.officialWebsite) ? uni.officialWebsite : null,
-    officialAdmissionsUrl: isValidPublicUrl(uni.officialAdmissionsUrl) ? uni.officialAdmissionsUrl : null,
+    officialAdmissionsUrl: null,
     sourceUrl: isValidPublicUrl(uni.sourceUrl) ? uni.sourceUrl : null,
     programs: visiblePrograms,
     fees: visibleFees,

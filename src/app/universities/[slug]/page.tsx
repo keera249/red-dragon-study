@@ -233,18 +233,6 @@ export default async function UniversityDetailPage({
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               )}
-
-              {uni.officialAdmissionsUrl && (
-                <a
-                  href={uni.officialAdmissionsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
-                >
-                  <span>{t.common.officialAdmissions}</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              )}
             </div>
           </div>
 
