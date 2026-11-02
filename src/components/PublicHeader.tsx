@@ -24,7 +24,10 @@ export async function PublicHeader({ lang }: { lang: SupportedLocale }) {
       .map((p) => `/${p.slug}`)
   );
 
-  const visibleNavItems = navItems.filter((item) => !disabledSlugs.has(item.href));
+  // Filter out redundant links (e.g. home '/' since logo links home)
+  const visibleNavItems = navItems.filter(
+    (item) => !disabledSlugs.has(item.href) && item.href !== '/'
+  );
 
   const siteTitle =
     lang === 'ar'
@@ -61,10 +64,22 @@ export async function PublicHeader({ lang }: { lang: SupportedLocale }) {
           </div>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-5">
+        <nav className="hidden lg:flex items-center gap-4 xl:gap-5">
+          <Link
+            href="/universities"
+            className="text-xs font-bold text-slate-700 hover:text-brand-700 transition"
+          >
+            {UI_LABELS[lang].nav.universities}
+          </Link>
+          <Link
+            href="/scholarships"
+            className="text-xs font-bold text-slate-700 hover:text-brand-700 transition"
+          >
+            {UI_LABELS[lang].nav.scholarships}
+          </Link>
           <Link
             href="/requirements"
-            className="text-xs font-black text-brand-800 bg-brand-50 border border-brand-200 px-3 py-1.5 rounded-xl hover:bg-brand-100 transition shadow-xs flex items-center gap-1.5"
+            className="text-xs font-black text-brand-900 bg-amber-400 hover:bg-amber-300 px-3 py-1.5 rounded-xl transition shadow-xs flex items-center gap-1.5"
           >
             <span>{lang === 'ar' ? 'المتطلبات والاستمارات الرسمية ↓' : 'Requirements & Forms ↓'}</span>
           </Link>
@@ -86,16 +101,18 @@ export async function PublicHeader({ lang }: { lang: SupportedLocale }) {
           >
             {lang === 'ar' ? 'تجارب الطلاب' : 'Testimonials'}
           </Link>
-          {visibleNavItems.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              target={item.openInNewTab ? '_blank' : undefined}
-              className="text-xs font-semibold text-slate-700 hover:text-brand-700 transition"
-            >
-              {lang === 'ar' ? item.labelAr || item.labelEn : item.labelEn}
-            </Link>
-          ))}
+          <Link
+            href="/about"
+            className="text-xs font-semibold text-slate-600 hover:text-brand-700 transition"
+          >
+            {UI_LABELS[lang].nav.about}
+          </Link>
+          <Link
+            href="/contact"
+            className="text-xs font-bold text-brand-800 bg-brand-50 border border-brand-200 px-3 py-1.5 rounded-xl hover:bg-brand-100 transition"
+          >
+            {UI_LABELS[lang].nav.contact}
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2.5">
@@ -104,40 +121,49 @@ export async function PublicHeader({ lang }: { lang: SupportedLocale }) {
       </div>
 
       {/* Mobile Navigation Bar */}
-      <div className="flex lg:hidden overflow-x-auto border-t border-slate-100 px-4 py-2 gap-3 bg-slate-50/70">
+      <div className="flex lg:hidden overflow-x-auto border-t border-slate-100 px-4 py-2 gap-2 bg-slate-50/80 no-scrollbar">
         <Link
           href="/requirements"
-          className="whitespace-nowrap text-xs font-black text-brand-800 bg-brand-50 border border-brand-200 px-2.5 py-1 rounded-lg"
+          className="whitespace-nowrap text-xs font-black text-brand-950 bg-amber-400 px-3 py-1 rounded-lg shrink-0 shadow-xs"
         >
-          {lang === 'ar' ? 'المتطلبات والاستمارات ↓' : 'Requirements ↓'}
+          {lang === 'ar' ? 'المتطلبات والاستمارات ↓' : 'Forms ↓'}
+        </Link>
+        <Link
+          href="/universities"
+          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 px-2 py-1 shrink-0"
+        >
+          {UI_LABELS[lang].nav.universities}
+        </Link>
+        <Link
+          href="/scholarships"
+          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 px-2 py-1 shrink-0"
+        >
+          {UI_LABELS[lang].nav.scholarships}
         </Link>
         <Link
           href="/#pricing"
-          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 py-1"
+          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 px-2 py-1 shrink-0"
         >
           {lang === 'ar' ? 'الأسعار' : 'Pricing'}
         </Link>
         <Link
           href="/#services"
-          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 py-1"
+          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 px-2 py-1 shrink-0"
         >
           {lang === 'ar' ? 'خدماتنا' : 'Services'}
         </Link>
         <Link
           href="/#testimonials"
-          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 py-1"
+          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 px-2 py-1 shrink-0"
         >
           {lang === 'ar' ? 'تجارب الطلاب' : 'Testimonials'}
         </Link>
-        {visibleNavItems.map((item) => (
-          <Link
-            key={item.id}
-            href={item.href}
-            className="whitespace-nowrap text-xs font-semibold text-slate-700 hover:text-brand-700 py-1"
-          >
-            {lang === 'ar' ? item.labelAr || item.labelEn : item.labelEn}
-          </Link>
-        ))}
+        <Link
+          href="/contact"
+          className="whitespace-nowrap text-xs font-bold text-brand-800 bg-brand-50 border border-brand-200 px-2.5 py-1 rounded-lg shrink-0"
+        >
+          {UI_LABELS[lang].nav.contact}
+        </Link>
       </div>
     </header>
   );

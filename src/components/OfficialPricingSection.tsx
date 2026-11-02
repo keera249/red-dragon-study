@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Check, Sparkles, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Check, Sparkles, HelpCircle, AlertCircle } from 'lucide-react';
 import { SupportedLocale } from '@/lib/i18n';
 
 interface OfficialPricingSectionProps {
@@ -206,6 +206,14 @@ export function OfficialPricingSection({ lang }: OfficialPricingSectionProps) {
                 >
                   {isAr ? 'ابدأ التقديم على الباقة ←' : 'Start Application →'}
                 </a>
+                <a
+                  href="#inquiry"
+                  className={`block text-center text-[11px] font-semibold mt-2.5 transition ${
+                    pkg.isPopular ? 'text-slate-200 hover:text-white' : 'text-slate-500 hover:text-brand-700'
+                  }`}
+                >
+                  {isAr ? 'أو أرسل طلبك عبر النموذج الإلكتروني' : 'or submit web inquiry'}
+                </a>
               </div>
             </div>
           ))}
@@ -215,7 +223,7 @@ export function OfficialPricingSection({ lang }: OfficialPricingSectionProps) {
         <div className="rounded-3xl bg-amber-50/90 border border-amber-200 p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-3xl">
             <div className="flex items-center gap-2 text-amber-900 font-extrabold text-sm sm:text-base">
-              <ShieldCheck className="h-5 w-5 text-amber-700" />
+              <AlertCircle className="h-5 w-5 text-amber-700" />
               <span>{isAr ? 'ملاحظة رسمية مهمة بشأن رسوم التسجيل الجامعي:' : 'Important University Registration Fee Policy:'}</span>
             </div>
             <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">

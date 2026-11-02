@@ -37,6 +37,13 @@ export async function PublicFooter({ lang }: { lang: SupportedLocale }) {
   const address = getLocalizedText(lang, contact?.addressAr, contact?.addressEn);
   const workingHours = getLocalizedText(lang, contact?.workingHoursAr, contact?.workingHoursEn);
 
+  let socialLinks: { instagram?: string; tiktok?: string; facebook?: string } = {};
+  if (contact?.socialLinksJson) {
+    try {
+      socialLinks = JSON.parse(contact.socialLinksJson);
+    } catch {}
+  }
+
   const showFloatingWhatsApp =
     contact?.globalWhatsappEnabled !== false &&
     (contact?.buttonPlacement === 'FLOATING' || contact?.buttonPlacement === 'BOTH');
@@ -68,6 +75,11 @@ export async function PublicFooter({ lang }: { lang: SupportedLocale }) {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
+                <Link href="/requirements" className="font-bold text-amber-300 hover:text-amber-200 transition flex items-center gap-1.5">
+                  <span>{lang === 'ar' ? 'استمارات ومتطلبات التقديم ↓' : 'Requirements & Forms ↓'}</span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/universities" className="hover:text-white transition">
                   {UI_LABELS[lang].nav.universities}
                 </Link>
@@ -75,6 +87,21 @@ export async function PublicFooter({ lang }: { lang: SupportedLocale }) {
               <li>
                 <Link href="/scholarships" className="hover:text-white transition">
                   {UI_LABELS[lang].nav.scholarships}
+                </Link>
+              </li>
+              <li>
+                <Link href="/#pricing" className="hover:text-white transition">
+                  {lang === 'ar' ? 'باقات التقديم والأسعار' : 'Pricing Packages'}
+                </Link>
+              </li>
+              <li>
+                <Link href="/#services" className="hover:text-white transition">
+                  {lang === 'ar' ? 'خدمات التنين الأحمر الـ 8' : 'Our 8 Integrated Services'}
+                </Link>
+              </li>
+              <li>
+                <Link href="/#testimonials" className="hover:text-white transition">
+                  {lang === 'ar' ? 'قبولات وتجارب الطلاب' : 'Student Admissions'}
                 </Link>
               </li>
               <li>
@@ -129,6 +156,45 @@ export async function PublicFooter({ lang }: { lang: SupportedLocale }) {
                 </li>
               )}
             </ul>
+
+            {/* Social Media Links */}
+            <div className="pt-3 border-t border-slate-800 space-y-2">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                {lang === 'ar' ? 'تابعنا على المنصات' : 'Follow Our Channels'}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {socialLinks.instagram && (
+                  <a
+                    href={socialLinks.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-pink-950/60 border border-pink-700/40 px-2.5 py-1 text-xs font-semibold text-pink-300 hover:bg-pink-900/60 transition"
+                  >
+                    <span>Instagram</span>
+                  </a>
+                )}
+                {socialLinks.tiktok && (
+                  <a
+                    href={socialLinks.tiktok}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 border border-slate-700 px-2.5 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition"
+                  >
+                    <span>TikTok</span>
+                  </a>
+                )}
+                {contact?.defaultWhatsappNumber && (
+                  <a
+                    href={`https://wa.me/${contact.defaultWhatsappNumber.replace(/\+/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-950/60 border border-emerald-700/40 px-2.5 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-900/60 transition"
+                  >
+                    <span>WhatsApp</span>
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

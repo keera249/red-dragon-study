@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Award, Calendar, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Award, Calendar, CheckCircle2 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { getCurrentLocale } from '@/lib/i18n-server';
 import { UI_LABELS } from '@/lib/i18n';
@@ -77,8 +77,8 @@ export default async function ScholarshipsDirectoryPage({
           </h1>
           <p className="mt-1 text-sm text-slate-600">
             {lang === 'ar'
-              ? 'استكشف المنح الدراسية الحكومية والجامعية الموثقة وشروط الأهلية الفعلية.'
-              : 'Explore verified government, provincial, and university scholarships with transparent benefits.'}
+              ? 'استكشف المنح الدراسية الحكومية والجامعية المتاحة وشروط الأهلية الفعلية.'
+              : 'Explore government, provincial, and university scholarships with transparent benefits.'}
           </p>
         </div>
 
