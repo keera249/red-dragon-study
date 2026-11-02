@@ -231,12 +231,6 @@ export default async function UniversitiesDirectoryPage({
                         )}
                       </div>
                     </div>
-                    {uni.verificationStatus === 'VERIFIED' && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        {lang === 'ar' ? 'موثقة' : 'Verified'}
-                      </span>
-                    )}
                   </div>
 
                   {(uni.city || uni.province) && (

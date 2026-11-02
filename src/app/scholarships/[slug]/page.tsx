@@ -87,12 +87,6 @@ export default async function ScholarshipDetailPage({
                   <Award className="h-3.5 w-3.5" />
                   {t.funding[sch.fundingType] || sch.fundingType}
                 </span>
-                {sch.verificationStatus === 'VERIFIED' && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                    <ShieldCheck className="h-4 w-4" />
-                    {t.common.verifiedInfo}
-                  </span>
-                )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{sName}</h1>
               {sProvider && <p className="text-sm font-medium text-slate-600">{sProvider}</p>}

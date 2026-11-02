@@ -238,8 +238,8 @@ export default async function HomePage({
                           <h2 className="text-xl font-extrabold text-white">RED DRAGON STUDY</h2>
                           <p className="text-xs text-amber-300 font-semibold">
                             {lang === 'ar'
-                              ? 'قبول جامعي موثق • منح دراسية • إرشاد أكاديمي'
-                              : 'Verified Admissions • Scholarships • Academic Advisory'}
+                              ? 'قبول جامعي رسمي • منح دراسية • إرشاد أكاديمي'
+                              : 'Official Admissions • Scholarships • Academic Advisory'}
                           </p>
                         </div>
                         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 text-center">
@@ -262,7 +262,7 @@ export default async function HomePage({
                           <div>
                             <div className="text-xl font-black text-amber-300">100%</div>
                             <div className="text-[11px] text-slate-300">
-                              {lang === 'ar' ? 'بيانات مراجعة' : 'Verified Data'}
+                              {lang === 'ar' ? 'متابعة مباشرة' : 'Direct Support'}
                             </div>
                           </div>
                         </div>
@@ -332,12 +332,6 @@ export default async function HomePage({
                               )}
                             </div>
                           </div>
-                          {uni.verificationStatus === 'VERIFIED' && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
-                              <ShieldCheck className="h-3.5 w-3.5" />
-                              {lang === 'ar' ? 'موثقة' : 'Verified'}
-                            </span>
-                          )}
                         </div>
 
                         {(uni.city || uni.province) && (

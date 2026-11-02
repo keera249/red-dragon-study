@@ -177,8 +177,9 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
     auditLogs: [],
   });
 
-  // Form states for quick creation
+  // Form states for quick creation & editing
   const [isUniFormOpen, setIsUniFormOpen] = useState(false);
+  const [editingUniversityId, setEditingUniversityId] = useState<string | null>(null);
   const [newUni, setNewUni] = useState({
     nameEn: '',
     nameAr: '',
@@ -205,6 +206,117 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
     accommodationDescEn: 'On-campus international student residence halls.',
     accommodationDescAr: 'سكن طلابي دولي مجهز داخل الحرم الجامعي.',
   });
+
+  const cancelEditingUniversity = () => {
+    setEditingUniversityId(null);
+    setNewUni({
+      nameEn: '',
+      nameAr: '',
+      nameZh: '',
+      slug: '',
+      city: 'Beijing',
+      province: 'Beijing',
+      district: '',
+      address: '',
+      universityType: 'جامعة بحثية حكومية (Double First-Class)',
+      officialWebsite: '',
+      logoUrl: '/logo.jpeg',
+      shortDescriptionEn: '',
+      shortDescriptionAr: '',
+      detailedDescriptionEn: '',
+      detailedDescriptionAr: '',
+      status: 'PUBLISHED',
+      applicationOpeningDate: '2026-11-01',
+      applicationDeadlineDate: '2027-03-31',
+      academicYear: '2027-2028',
+      accommodationAvailable: true,
+      accommodationFeeAmount: '9000',
+      accommodationFeePeriod: 'ANNUALLY',
+      accommodationDescEn: 'On-campus international student residence halls.',
+      accommodationDescAr: 'سكن طلابي دولي مجهز داخل الحرم الجامعي.',
+    });
+  };
+
+  const startEditingUniversity = (u: any) => {
+    setEditingUniversityId(u.id);
+    setNewUni({
+      nameEn: u.nameEn || '',
+      nameAr: u.nameAr || '',
+      nameZh: u.nameZh || '',
+      slug: u.slug || '',
+      city: u.city || 'Beijing',
+      province: u.province || 'Beijing',
+      district: u.district || '',
+      address: u.address || '',
+      universityType: u.universityType || 'جامعة بحثية حكومية (Double First-Class)',
+      officialWebsite: u.officialWebsite || '',
+      logoUrl: u.logoUrl || '/logo.jpeg',
+      shortDescriptionEn: u.shortDescriptionEn || '',
+      shortDescriptionAr: u.shortDescriptionAr || '',
+      detailedDescriptionEn: u.detailedDescriptionEn || '',
+      detailedDescriptionAr: u.detailedDescriptionAr || '',
+      status: u.status || 'PUBLISHED',
+      applicationOpeningDate: u.deadlines?.[0]?.openingDate ? u.deadlines[0].openingDate.split('T')[0] : '2026-11-01',
+      applicationDeadlineDate: u.deadlines?.[0]?.closingDate ? u.deadlines[0].closingDate.split('T')[0] : '2027-03-31',
+      academicYear: u.deadlines?.[0]?.academicYear || '2027-2028',
+      accommodationAvailable: u.accommodationAvailable ?? true,
+      accommodationFeeAmount: u.fees?.find((f: any) => f.category === 'ACCOMMODATION')?.amount?.toString() || '9000',
+      accommodationFeePeriod: u.fees?.find((f: any) => f.category === 'ACCOMMODATION')?.period || 'ANNUALLY',
+      accommodationDescEn: u.accommodationDescEn || '',
+      accommodationDescAr: u.accommodationDescAr || '',
+    });
+
+    if (u.programs && u.programs.length > 0) {
+      setUniPrograms(
+        u.programs.map((p: any) => ({
+          nameEn: p.nameEn,
+          nameAr: p.nameAr || '',
+          nameZh: p.nameZh || '',
+          degreeLevel: p.degreeLevel || 'BACHELOR',
+          languageOfInstruction: p.studyLanguage || p.languageOfInstruction || 'ENGLISH',
+          durationEn: p.durationYears ? `${p.durationYears} Years` : '4 Years',
+          tuitionAmount: p.fees?.find((f: any) => f.category === 'TUITION')?.amount?.toString() || p.tuitionAmount?.toString() || '26000',
+          tuitionCurrency: 'CNY',
+          tuitionPeriod: 'ANNUALLY',
+          eligibilityEn: p.eligibilityEn || '',
+        }))
+      );
+    }
+
+    if (u.scholarshipLinks) {
+      setUniSelectedSchIds(u.scholarshipLinks.map((sl: any) => sl.scholarshipId));
+    }
+    if (u.sharedRequirements) {
+      setUniSelectedReqIds(u.sharedRequirements.map((sr: any) => sr.requirementId));
+    }
+
+    const campusGal = u.galleries?.find((g: any) => g.category === 'CAMPUS');
+    if (campusGal?.images && campusGal.images.length > 0) {
+      setUniCampusImages(
+        campusGal.images.map((img: any) => ({
+          imageUrl: img.imageUrl,
+          captionEn: img.captionEn || '',
+          captionAr: img.captionAr || '',
+        }))
+      );
+    }
+
+    const dormGal = u.galleries?.find((g: any) => g.category === 'DORMITORY');
+    if (dormGal?.images && dormGal.images.length > 0) {
+      setUniAccomImages(
+        dormGal.images.map((img: any) => ({
+          imageUrl: img.imageUrl,
+          captionEn: img.captionEn || '',
+          captionAr: img.captionAr || '',
+        }))
+      );
+    }
+
+    setIsUniFormOpen(true);
+    setTimeout(() => {
+      document.getElementById('university-form-container')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
 
   const [uniPrograms, setUniPrograms] = useState<Array<{
     nameEn: string;
@@ -755,15 +867,22 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                 )}
               </div>
 
-              {/* UNIFIED ALL-IN-ONE UNIVERSITY CREATION FORM */}
+              {/* UNIFIED ALL-IN-ONE UNIVERSITY CREATION & EDITING FORM */}
               {can('universities:write') && isUniFormOpen && (
                 <form
+                  id="university-form-container"
                   onSubmit={async (e) => {
                     e.preventDefault();
                     if (!newUni.nameEn.trim()) {
                       notify('اسم الجامعة باللغة الإنجليزية مطلوب');
                       return;
                     }
+
+                    const isEditing = Boolean(editingUniversityId);
+                    const endpoint = isEditing
+                      ? `/api/admin/universities/${editingUniversityId}`
+                      : '/api/admin/universities';
+                    const method = isEditing ? 'PUT' : 'POST';
 
                     const payload = {
                       ...newUni,
@@ -801,42 +920,20 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                       accommodationImages: uniAccomImages.filter((img) => img.imageUrl.trim()),
                     };
 
-                    const res = await fetch('/api/admin/universities', {
-                      method: 'POST',
+                    const res = await fetch(endpoint, {
+                      method,
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(payload),
                     });
 
                     if (res.ok) {
-                      notify('تم إنشاء الجامعة وحفظ جميع البرامج والمواعيد والمتطلبات والصور والمنح بنجاح!');
+                      notify(
+                        isEditing
+                          ? 'تم تحديث بيانات الجامعة وكافة برامجها وتفاصيلها بنجاح!'
+                          : 'تم إنشاء الجامعة وحفظ جميع البرامج والمواعيد والمتطلبات والصور والمنح بنجاح!'
+                      );
                       setIsUniFormOpen(false);
-                      // Reset fields
-                      setNewUni({
-                        nameEn: '',
-                        nameAr: '',
-                        nameZh: '',
-                        slug: '',
-                        city: 'Beijing',
-                        province: 'Beijing',
-                        district: '',
-                        address: '',
-                        universityType: 'جامعة بحثية حكومية (Double First-Class)',
-                        officialWebsite: '',
-                        logoUrl: '/logo.jpeg',
-                        shortDescriptionEn: '',
-                        shortDescriptionAr: '',
-                        detailedDescriptionEn: '',
-                        detailedDescriptionAr: '',
-                        status: 'PUBLISHED',
-                        applicationOpeningDate: '2026-11-01',
-                        applicationDeadlineDate: '2027-03-31',
-                        academicYear: '2027-2028',
-                        accommodationAvailable: true,
-                        accommodationFeeAmount: '9000',
-                        accommodationFeePeriod: 'ANNUALLY',
-                        accommodationDescEn: 'On-campus international student residence halls.',
-                        accommodationDescAr: 'سكن طلابي دولي مجهز داخل الحرم الجامعي.',
-                      });
+                      cancelEditingUniversity();
                       loadTabData('universities');
                     } else {
                       const err = await res.json();
@@ -847,20 +944,45 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                 >
                   <div className="border-b border-slate-200 pb-4 flex items-center justify-between">
                     <div>
-                      <h3 className="text-base font-extrabold text-slate-900">
-                        نموذج إضافة جامعة شامل (All-in-One University Form)
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-extrabold text-slate-900">
+                          {editingUniversityId
+                            ? `تعديل بيانات الجامعة: ${newUni.nameEn}`
+                            : 'نموذج إضافة جامعة شامل (All-in-One University Form)'}
+                        </h3>
+                        {editingUniversityId && (
+                          <span className="rounded-full bg-amber-100 text-amber-900 text-[10px] font-black px-2.5 py-0.5 border border-amber-300">
+                            وضع التعديل النشط
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500">
-                        أدخل اسم الجامعة، التخصصات والبرامج، مواعيد التقديم، متطلبات القبول، رسوم السكن، الصور والمنح دفعة واحدة.
+                        {editingUniversityId
+                          ? 'يمكنك تعديل اسم الجامعة، التخصصات والبرامج، الرسوم، المواعيد، الصور وكافة التفاصيل والضغط على حفظ التعديلات.'
+                          : 'أدخل اسم الجامعة، التخصصات والبرامج، مواعيد التقديم، متطلبات القبول، رسوم السكن، الصور والمنح دفعة واحدة.'}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsUniFormOpen(false)}
-                      className="text-xs text-slate-500 hover:text-slate-800 underline"
-                    >
-                      إلغاء الإضافة
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {editingUniversityId && (
+                        <button
+                          type="button"
+                          onClick={cancelEditingUniversity}
+                          className="rounded-lg bg-slate-100 border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition"
+                        >
+                          إلغاء التعديل
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUniFormOpen(false);
+                          cancelEditingUniversity();
+                        }}
+                        className="text-xs text-slate-500 hover:text-slate-800 underline"
+                      >
+                        إغلاق
+                      </button>
+                    </div>
                   </div>
 
                   {/* 1. معلومات الجامعة الأساسية */}
@@ -1516,19 +1638,41 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
 
                   {/* Submit Button */}
                   <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4">
-                    <button
-                      type="submit"
-                      className="inline-flex items-center gap-2 rounded-2xl bg-brand-700 px-6 py-3 text-sm font-extrabold text-white shadow-lg hover:bg-brand-800 transition"
-                    >
-                      <CheckCircle2 className="h-5 w-5" />
-                      <span>حفظ ونشر الجامعة بجميع تفاصيلها الآن</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="submit"
+                        className={`inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-extrabold text-white shadow-lg transition ${
+                          editingUniversityId
+                            ? 'bg-amber-600 hover:bg-amber-700'
+                            : 'bg-brand-700 hover:bg-brand-800'
+                        }`}
+                      >
+                        <CheckCircle2 className="h-5 w-5" />
+                        <span>
+                          {editingUniversityId
+                            ? 'حفظ وتحديث بيانات الجامعة الآن'
+                            : 'حفظ ونشر الجامعة بجميع تفاصيلها الآن'}
+                        </span>
+                      </button>
+                      {editingUniversityId && (
+                        <button
+                          type="button"
+                          onClick={cancelEditingUniversity}
+                          className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-xs font-bold text-amber-900 hover:bg-amber-100 transition"
+                        >
+                          إلغاء وضع التعديل
+                        </button>
+                      )}
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setIsUniFormOpen(false)}
+                      onClick={() => {
+                        setIsUniFormOpen(false);
+                        cancelEditingUniversity();
+                      }}
                       className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
                     >
-                      إلغاء
+                      إغلاق النموذج
                     </button>
                   </div>
                 </form>
@@ -1543,7 +1687,6 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                       <th className="p-3.5">City / Province</th>
                       <th className="p-3.5">Programs</th>
                       <th className="p-3.5">Status</th>
-                      <th className="p-3.5">Verification</th>
                       <th className="p-3.5">Actions</th>
                     </tr>
                   </thead>
@@ -1581,8 +1724,14 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                             <option value="ARCHIVED">ARCHIVED</option>
                           </select>
                         </td>
-                        <td className="p-3.5">{u.verificationStatus}</td>
                         <td className="p-3.5 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEditingUniversity(u)}
+                            className="rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1 font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-xs"
+                          >
+                            تعديل
+                          </button>
                           <Link
                             href={`/universities/${u.slug}?preview=true`}
                             target="_blank"

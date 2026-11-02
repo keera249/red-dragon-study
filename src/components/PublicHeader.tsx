@@ -63,10 +63,10 @@ export async function PublicHeader({ lang }: { lang: SupportedLocale }) {
 
         <nav className="hidden lg:flex items-center gap-5">
           <Link
-            href="/#downloads"
-            className="text-xs font-black text-brand-800 bg-brand-50 border border-brand-200 px-3 py-1.5 rounded-xl hover:bg-brand-100 transition shadow-xs"
+            href="/requirements"
+            className="text-xs font-black text-brand-800 bg-brand-50 border border-brand-200 px-3 py-1.5 rounded-xl hover:bg-brand-100 transition shadow-xs flex items-center gap-1.5"
           >
-            {lang === 'ar' ? 'تحميل الاستمارات الرسمية ↓' : 'Download Forms ↓'}
+            <span>{lang === 'ar' ? 'المتطلبات والاستمارات الرسمية ↓' : 'Requirements & Forms ↓'}</span>
           </Link>
           <Link
             href="/#pricing"
@@ -106,10 +106,10 @@ export async function PublicHeader({ lang }: { lang: SupportedLocale }) {
       {/* Mobile Navigation Bar */}
       <div className="flex lg:hidden overflow-x-auto border-t border-slate-100 px-4 py-2 gap-3 bg-slate-50/70">
         <Link
-          href="/#downloads"
+          href="/requirements"
           className="whitespace-nowrap text-xs font-black text-brand-800 bg-brand-50 border border-brand-200 px-2.5 py-1 rounded-lg"
         >
-          {lang === 'ar' ? 'تحميل الاستمارات ↓' : 'Forms ↓'}
+          {lang === 'ar' ? 'المتطلبات والاستمارات ↓' : 'Requirements ↓'}
         </Link>
         <Link
           href="/#pricing"

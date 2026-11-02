@@ -87,7 +87,7 @@ export function OfficialTestimonialsGallery({ lang }: OfficialTestimonialsGaller
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-4 py-1.5 text-xs font-extrabold text-emerald-800 uppercase tracking-wider mb-4">
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-            <span>{isAr ? 'قبولات حقيقية وموثقة' : 'Verified Student Admissions'}</span>
+            <span>{isAr ? 'قبولات حقيقية ورسمية' : 'Authentic Student Admissions'}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             {isAr ? 'تجارب وقبولات طلابنا في الصين' : 'Real Admissions & Student Testimonials'}
@@ -124,7 +124,7 @@ export function OfficialTestimonialsGallery({ lang }: OfficialTestimonialsGaller
                     </span>
                   </div>
                   <span className="absolute bottom-2 end-2 rounded-lg bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-0.5 backdrop-blur">
-                    {isAr ? 'قبول مؤكد ✓' : 'Verified Admission ✓'}
+                    {isAr ? 'قبول مؤكد ✓' : 'Official Admission ✓'}
                   </span>
                 </div>
 

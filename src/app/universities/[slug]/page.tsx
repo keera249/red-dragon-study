@@ -8,8 +8,10 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
+  Download,
   ExternalLink,
   FileCheck2,
+  FileText,
   MapPin,
   ShieldCheck,
   Wallet,
@@ -159,12 +161,6 @@ export default async function UniversityDetailPage({
                   {hasNonEmptyText(uni.nameZh) && (
                     <span className="rounded-lg bg-brand-50 px-3 py-1 text-sm font-bold text-brand-800 border border-brand-200">
                       {uni.nameZh}
-                    </span>
-                  )}
-                  {uni.verificationStatus === 'VERIFIED' && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
-                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                      {t.common.verifiedInfo}
                     </span>
                   )}
                 </div>
@@ -464,9 +460,39 @@ export default async function UniversityDetailPage({
         {/* Admission Requirements Checklist (Rule 13 & 8.4: Hidden if 0 visible requirements) */}
         {uni.requirements.length > 0 && (
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-6">
-              <FileCheck2 className="h-5 w-5 text-brand-700" />
-              <h2 className="text-xl font-bold text-slate-900">{t.common.requirements}</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <FileCheck2 className="h-5 w-5 text-brand-700" />
+                <h2 className="text-xl font-bold text-slate-900">{t.common.requirements}</h2>
+              </div>
+
+              {/* Direct Official Forms Downloads */}
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href="/forms/application-form.doc"
+                  download="Red-Dragon-Study-Application-Form.doc"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 border border-blue-200 px-3 py-1.5 text-xs font-bold text-blue-800 hover:bg-blue-100 transition"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>{lang === 'ar' ? 'استمارة التقديم (DOC)' : 'Application Form (DOC)'}</span>
+                </a>
+                <a
+                  href="/forms/physical-examination-form.pdf"
+                  download="Foreigner-Physical-Examination-Form-China.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>{lang === 'ar' ? 'الفحص الطبي (PDF)' : 'Medical Form (PDF)'}</span>
+                </a>
+                <Link
+                  href="/requirements"
+                  className="inline-flex items-center gap-1 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition"
+                >
+                  <span>{lang === 'ar' ? 'صفحة المتطلبات الكاملة ←' : 'All Requirements →'}</span>
+                </Link>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

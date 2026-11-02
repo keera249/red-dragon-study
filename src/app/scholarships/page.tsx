@@ -186,12 +186,6 @@ export default async function ScholarshipsDirectoryPage({
                         <Award className="h-3.5 w-3.5" />
                         {t.funding[sch.fundingType] || sch.fundingType}
                       </span>
-                      {sch.verificationStatus === 'VERIFIED' && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                          {lang === 'ar' ? 'موثقة' : 'Verified'}
-                        </span>
-                      )}
                     </div>
 
                     <h2 className="text-lg font-bold text-slate-900">{sName}</h2>
