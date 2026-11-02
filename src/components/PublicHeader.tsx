@@ -61,13 +61,37 @@ export async function PublicHeader({ lang }: { lang: SupportedLocale }) {
           </div>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-6">
+        <nav className="hidden lg:flex items-center gap-5">
+          <Link
+            href="/#downloads"
+            className="text-xs font-black text-brand-800 bg-brand-50 border border-brand-200 px-3 py-1.5 rounded-xl hover:bg-brand-100 transition shadow-xs"
+          >
+            {lang === 'ar' ? 'تحميل الاستمارات الرسمية ↓' : 'Download Forms ↓'}
+          </Link>
+          <Link
+            href="/#pricing"
+            className="text-xs font-bold text-slate-700 hover:text-brand-700 transition"
+          >
+            {lang === 'ar' ? 'الباقات والأسعار' : 'Pricing'}
+          </Link>
+          <Link
+            href="/#services"
+            className="text-xs font-bold text-slate-700 hover:text-brand-700 transition"
+          >
+            {lang === 'ar' ? 'خدماتنا' : 'Services'}
+          </Link>
+          <Link
+            href="/#testimonials"
+            className="text-xs font-bold text-slate-700 hover:text-brand-700 transition"
+          >
+            {lang === 'ar' ? 'تجارب الطلاب' : 'Testimonials'}
+          </Link>
           {visibleNavItems.map((item) => (
             <Link
               key={item.id}
               href={item.href}
               target={item.openInNewTab ? '_blank' : undefined}
-              className="text-sm font-semibold text-slate-700 hover:text-brand-700 transition"
+              className="text-xs font-semibold text-slate-700 hover:text-brand-700 transition"
             >
               {lang === 'ar' ? item.labelAr || item.labelEn : item.labelEn}
             </Link>
@@ -80,12 +104,36 @@ export async function PublicHeader({ lang }: { lang: SupportedLocale }) {
       </div>
 
       {/* Mobile Navigation Bar */}
-      <div className="flex lg:hidden overflow-x-auto border-t border-slate-100 px-4 py-2 gap-4 bg-slate-50/70">
+      <div className="flex lg:hidden overflow-x-auto border-t border-slate-100 px-4 py-2 gap-3 bg-slate-50/70">
+        <Link
+          href="/#downloads"
+          className="whitespace-nowrap text-xs font-black text-brand-800 bg-brand-50 border border-brand-200 px-2.5 py-1 rounded-lg"
+        >
+          {lang === 'ar' ? 'تحميل الاستمارات ↓' : 'Forms ↓'}
+        </Link>
+        <Link
+          href="/#pricing"
+          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 py-1"
+        >
+          {lang === 'ar' ? 'الأسعار' : 'Pricing'}
+        </Link>
+        <Link
+          href="/#services"
+          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 py-1"
+        >
+          {lang === 'ar' ? 'خدماتنا' : 'Services'}
+        </Link>
+        <Link
+          href="/#testimonials"
+          className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 py-1"
+        >
+          {lang === 'ar' ? 'تجارب الطلاب' : 'Testimonials'}
+        </Link>
         {visibleNavItems.map((item) => (
           <Link
             key={item.id}
             href={item.href}
-            className="whitespace-nowrap text-xs font-semibold text-slate-700 hover:text-brand-700"
+            className="whitespace-nowrap text-xs font-semibold text-slate-700 hover:text-brand-700 py-1"
           >
             {lang === 'ar' ? item.labelAr || item.labelEn : item.labelEn}
           </Link>

@@ -27,6 +27,10 @@ import { PublicFooter } from '@/components/PublicFooter';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { CompareToggleButton } from '@/components/CompareToggleButton';
 import { InquiryFormClient } from '@/components/InquiryFormClient';
+import { OfficialDownloadsSection } from '@/components/OfficialDownloadsSection';
+import { OfficialPricingSection } from '@/components/OfficialPricingSection';
+import { OfficialServicesSection } from '@/components/OfficialServicesSection';
+import { OfficialTestimonialsGallery } from '@/components/OfficialTestimonialsGallery';
 
 export default async function HomePage({
   searchParams,
@@ -200,6 +204,12 @@ export default async function HomePage({
                             {secBtnText}
                           </Link>
                         )}
+                        <a
+                          href="#downloads"
+                          className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-extrabold text-brand-950 shadow hover:bg-amber-300 transition"
+                        >
+                          {lang === 'ar' ? 'تحميل الاستمارات الرسمية ↓' : 'Download Official Forms ↓'}
+                        </a>
                         {contact && (
                           <WhatsAppButton
                             config={{
@@ -701,6 +711,12 @@ export default async function HomePage({
 
           return null;
         })}
+
+        {/* Official Red Dragon Study Sections: Downloads, Pricing, Services & Real Testimonials */}
+        <OfficialDownloadsSection lang={lang} />
+        <OfficialPricingSection lang={lang} />
+        <OfficialServicesSection lang={lang} />
+        <OfficialTestimonialsGallery lang={lang} />
       </main>
 
       <PublicFooter lang={lang} />

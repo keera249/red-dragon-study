@@ -119,25 +119,24 @@ export async function seedDatabase() {
     update: {},
     create: {
       id: 'default',
-      defaultWhatsappNumber: '+8613800138000',
+      defaultWhatsappNumber: '+8615518309290',
       globalWhatsappEnabled: true,
       buttonTextEn: 'Chat on WhatsApp',
       buttonTextAr: 'تواصل عبر واتساب',
       buttonPlacement: 'BOTH',
       defaultMessageEn:
-        'Hello Red Dragon Study, I would like more information about studying in China.',
+        'Hello Red Dragon Study 🇨🇳 I would like to inquire about studying in China.',
       defaultMessageAr:
-        'مرحباً فريق التنين الأحمر للدراسة، أود الحصول على مزيد من المعلومات حول الدراسة في الصين.',
-      contactEmail: 'admissions@reddragonstudy.com',
-      phoneDisplay: '+86 138 0013 8000',
+        'مرحباً Red Dragon Study 🇨🇳 أرغب في الاستفسار عن التقديم للدراسة في الصين.',
+      contactEmail: 'info@reddragonstudy.com',
+      phoneDisplay: '+86 155 1830 9290',
       addressEn: 'Suite 1208, International Education Plaza, Haidian District, Beijing, China',
       addressAr: 'جناح 1208، بلازا التعليم الدولي، حي هايديان، بكين، الصين',
       workingHoursEn: 'Mon - Sat: 09:00 - 18:00 (Beijing Time)',
       workingHoursAr: 'الإثنين - السبت: 09:00 صباحاً - 06:00 مساءً (بتوقيت بكين)',
       socialLinksJson: JSON.stringify({
-        instagram: 'https://instagram.com/reddragonstudy',
-        linkedin: 'https://linkedin.com/company/reddragonstudy',
-        youtube: 'https://youtube.com/@reddragonstudy',
+        instagram: 'https://www.instagram.com/reddragon.study/',
+        tiktok: 'https://www.tiktok.com/@reddragonstudy?_r=1&_t=ZS-99WDSO6oeCl',
       }),
       inquiryFieldsConfigJson: JSON.stringify({
         studentName: { enabled: true, required: true },
