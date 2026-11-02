@@ -1,3 +1,5 @@
+// Red Dragon Study - Official Admissions Portal
+// Connected Git Deployment: production
 import React from 'react';
 import Link from 'next/link';
 import {
