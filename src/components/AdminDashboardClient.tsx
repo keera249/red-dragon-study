@@ -34,6 +34,7 @@ import {
   ChevronUp,
   Key,
   Lock,
+  Menu,
   X,
 } from 'lucide-react';
 import { AuthenticatedActor } from '@/lib/rbac';
@@ -460,6 +461,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
   });
   const [expandedEmpId, setExpandedEmpId] = useState<string | null>(null);
   const [activeRoleGuideTab, setActiveRoleGuideTab] = useState<'ADMINISTRATOR' | 'CONTENT_EDITOR' | 'INQUIRY_OFFICER'>('ADMINISTRATOR');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [newPage, setNewPage] = useState({
     slug: '',
@@ -612,9 +614,9 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
   ];
 
   return (
-    <div className="min-h-screen flex bg-slate-100 text-slate-900" dir="ltr">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-950 text-slate-200 flex flex-col shrink-0">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-100 text-slate-900" dir="ltr">
+      {/* Desktop Sidebar (Permanent on md and larger) */}
+      <aside className="hidden md:flex w-64 bg-slate-950 text-slate-200 flex-col shrink-0">
         <div className="p-5 border-b border-slate-800 flex items-center gap-3">
           <img
             src="/logo.jpeg"
@@ -660,7 +662,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
               href="/"
               className="flex-1 rounded-lg bg-slate-800 px-3 py-1.5 text-center text-xs font-semibold text-white hover:bg-slate-700"
             >
-              Public Site
+              الموقع العام ↗
             </Link>
             <button
               type="button"
@@ -674,35 +676,143 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-extrabold text-slate-900 capitalize">
-              {navTabs.find((n) => n.key === activeTab)?.label}
-            </h1>
-            <p className="text-xs text-slate-500">
-              Signed in as {actor.email} • Server-enforced RBAC active
-            </p>
+      {/* Mobile Drawer (Slide-over overlay on mobile) */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs md:hidden animate-in fade-in"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <div
+            className="w-72 max-w-[85vw] h-full bg-slate-950 text-slate-200 flex flex-col shadow-2xl animate-in slide-in-from-left duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <img
+                  src="/logo.jpeg"
+                  alt="Red Dragon Study"
+                  className="h-8 w-8 rounded-full object-cover bg-white p-0.5"
+                />
+                <div>
+                  <div className="text-sm font-extrabold text-white">لوحة الإدارة</div>
+                  <div className="text-[10px] text-brand-400 font-medium">{actor.email}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-800"
+                aria-label="Close Menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
+              {navTabs
+                .filter((t) => t.show)
+                .map((t) => {
+                  const Icon = t.icon;
+                  return (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(t.key);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-bold transition text-right ${
+                        activeTab === t.key
+                          ? 'bg-brand-700 text-white shadow'
+                          : 'text-slate-400 hover:bg-slate-900 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0 text-brand-400" />
+                      <div className="flex-1 text-left">
+                        <div className="text-xs font-bold text-slate-100">{t.labelAr}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">{t.label}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+            </nav>
+
+            <div className="p-4 border-t border-slate-800 space-y-2">
+              <div className="text-xs text-slate-400 truncate">{actor.name}</div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/"
+                  className="flex-1 rounded-lg bg-slate-800 px-3 py-2 text-center text-xs font-semibold text-white hover:bg-slate-700"
+                >
+                  الموقع العام ↗
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-lg bg-red-900/60 p-2 text-red-200 hover:bg-red-800"
+                  title="تسجيل الخروج"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 w-full">
+        {/* Top Header */}
+        <header className="bg-white border-b border-slate-200 px-3.5 py-2.5 sm:px-6 sm:py-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            {/* Mobile Hamburger Button */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-2 text-slate-700 hover:bg-slate-100 active:scale-95 transition"
+              aria-label="Open Navigation"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-sm sm:text-lg font-extrabold text-slate-900 capitalize flex items-center gap-1.5">
+                <span>{navTabs.find((n) => n.key === activeTab)?.labelAr || navTabs.find((n) => n.key === activeTab)?.label}</span>
+                <span className="hidden sm:inline-block text-xs font-normal text-slate-400">
+                  ({navTabs.find((n) => n.key === activeTab)?.label})
+                </span>
+              </h1>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate max-w-[150px] sm:max-w-none">
+                {actor.email}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
             {toast && (
-              <div className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow">
+              <div className="fixed top-3 start-1/2 -translate-x-1/2 z-50 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-lg animate-in fade-in">
                 {toast}
               </div>
             )}
             <button
               type="button"
               onClick={() => loadTabData(activeTab)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs active:scale-95 transition"
+              title="تحديث البيانات"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              <span>Refresh</span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
+            <Link
+              href="/"
+              target="_blank"
+              className="hidden sm:inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              الموقع ↗
+            </Link>
           </div>
         </header>
 
-        <main className="p-6 space-y-6 overflow-y-auto flex-1">
+        <main className="p-3 sm:p-6 pb-24 md:pb-6 space-y-6 overflow-y-auto flex-1 w-full max-w-full">
           {/* 1. OVERVIEW TAB */}
           {activeTab === 'overview' && overview && (
             <div className="space-y-6">
@@ -1690,7 +1800,8 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
 
               {/* UNIVERSITIES DIRECTORY TABLE */}
               <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-                <table className="w-full text-left text-xs border-collapse">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[640px] text-left text-xs border-collapse">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase">
                     <tr>
                       <th className="p-3.5">University</th>
@@ -1794,6 +1905,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                   </tbody>
                 </table>
               </div>
+            </div>
               </>
             )}
             </div>
@@ -3598,6 +3710,37 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
             </div>
           )}
         </main>
+
+        {/* Mobile Fixed Bottom Navigation Bar */}
+        <nav
+          className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around px-1 py-1.5 shadow-2xl"
+          aria-label="Mobile Navigation"
+        >
+          {navTabs
+            .filter((t) => t.show)
+            .map((t) => {
+              const Icon = t.icon;
+              const isActive = activeTab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(t.key);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-all duration-150 min-w-[56px] ${
+                    isActive
+                      ? 'text-amber-400 font-bold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 mb-0.5 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
+                  <span className="text-[10px] truncate max-w-[64px] tracking-tight">{t.labelAr}</span>
+                </button>
+              );
+            })}
+        </nav>
       </div>
     </div>
   );
