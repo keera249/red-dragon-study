@@ -99,11 +99,11 @@ export async function PublicFooter({ lang }: { lang: SupportedLocale }) {
                   {lang === 'ar' ? 'خدمات التنين الأحمر الـ 8' : 'Our 8 Integrated Services'}
                 </Link>
               </li>
-              <li>
+              {/* <li>
                 <Link href="/#testimonials" className="hover:text-white transition">
                   {lang === 'ar' ? 'قبولات وتجارب الطلاب' : 'Student Admissions'}
                 </Link>
-              </li>
+              </li> */}
               <li>
                 <Link href="/compare" className="hover:text-white transition">
                   {UI_LABELS[lang].nav.compare}

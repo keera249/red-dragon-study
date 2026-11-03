@@ -735,8 +735,8 @@ export default async function HomePage({
         {/* 6. AVAILABLE SCHOLARSHIPS (المنح الدراسية وفرص التمويل) */}
         {renderSection('available_scholarships')}
 
-        {/* 7. REAL STUDENT ADMISSIONS (قبولات وإشعارات طلابنا الحقيقية) */}
-        <OfficialTestimonialsGallery lang={lang} />
+        {/* 7. REAL STUDENT ADMISSIONS (قبولات وإشعارات طلابنا الحقيقية - مخفية مؤقتاً) */}
+        {/* <OfficialTestimonialsGallery lang={lang} /> */}
 
         {/* 8. APPLICATION PROCESS (مراحل التقديم الأربعة) */}
         {renderSection('application_process')}

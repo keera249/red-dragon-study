@@ -95,12 +95,12 @@ export async function PublicHeader({ lang }: { lang: SupportedLocale }) {
           >
             {lang === 'ar' ? 'خدماتنا' : 'Services'}
           </Link>
-          <Link
+          {/* <Link
             href="/#testimonials"
             className="text-xs font-bold text-slate-700 hover:text-brand-700 transition"
           >
             {lang === 'ar' ? 'تجارب الطلاب' : 'Testimonials'}
-          </Link>
+          </Link> */}
           <Link
             href="/about"
             className="text-xs font-semibold text-slate-600 hover:text-brand-700 transition"
@@ -152,12 +152,12 @@ export async function PublicHeader({ lang }: { lang: SupportedLocale }) {
         >
           {lang === 'ar' ? 'خدماتنا' : 'Services'}
         </Link>
-        <Link
+        {/* <Link
           href="/#testimonials"
           className="whitespace-nowrap text-xs font-bold text-slate-700 hover:text-brand-700 px-2 py-1 shrink-0"
         >
           {lang === 'ar' ? 'تجارب الطلاب' : 'Testimonials'}
-        </Link>
+        </Link> */}
         <Link
           href="/contact"
           className="whitespace-nowrap text-xs font-bold text-brand-800 bg-brand-50 border border-brand-200 px-2.5 py-1 rounded-lg shrink-0"
