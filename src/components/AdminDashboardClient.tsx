@@ -22,11 +22,19 @@ import {
   Plus,
   RefreshCw,
   Settings,
+  Shield,
   ShieldAlert,
   ShieldCheck,
   Trash2,
   Upload,
+  UserCheck,
   Users,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Key,
+  Lock,
+  X,
 } from 'lucide-react';
 import { AuthenticatedActor } from '@/lib/rbac';
 
@@ -450,6 +458,8 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
     password: '',
     roleCode: 'INQUIRY_OFFICER',
   });
+  const [expandedEmpId, setExpandedEmpId] = useState<string | null>(null);
+  const [activeRoleGuideTab, setActiveRoleGuideTab] = useState<'ADMINISTRATOR' | 'CONTENT_EDITOR' | 'INQUIRY_OFFICER'>('ADMINISTRATOR');
 
   const [newPage, setNewPage] = useState({
     slug: '',
@@ -2938,6 +2948,214 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
           {/* 12. EMPLOYEES & RBAC TAB */}
           {(activeTab === 'employees' || (activeTab === 'settings' && settingsSubTab === 'employees')) && (
             <div className="space-y-6">
+              
+              {/* Role & Permissions Interactive Guide */}
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-brand-700" />
+                      <h2 className="text-base font-black text-slate-900">
+                        دليل الأدوار والصلاحيات الوظيفية (Role-Based Access Control)
+                      </h2>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      شرح تفصيلي لصلاحيات كل موظف ومسؤولياته وحدود وصوله داخل لوحة تحكم التنين الأحمر.
+                    </p>
+                  </div>
+
+                  {/* Role Selector Tabs */}
+                  <div className="inline-flex rounded-xl bg-slate-100 p-1 gap-1 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setActiveRoleGuideTab('ADMINISTRATOR')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        activeRoleGuideTab === 'ADMINISTRATOR'
+                          ? 'bg-white text-amber-900 shadow-xs font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      👑 مدير النظام (Admin)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveRoleGuideTab('CONTENT_EDITOR')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        activeRoleGuideTab === 'CONTENT_EDITOR'
+                          ? 'bg-white text-blue-900 shadow-xs font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      ✍️ محرر المحتوى (Editor)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveRoleGuideTab('INQUIRY_OFFICER')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        activeRoleGuideTab === 'INQUIRY_OFFICER'
+                          ? 'bg-white text-emerald-900 shadow-xs font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      🎧 مسؤول الاستفسارات (Inquiries)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Role Details Panel */}
+                {activeRoleGuideTab === 'ADMINISTRATOR' && (
+                  <div className="rounded-2xl border-2 border-amber-200 bg-amber-50/40 p-5 space-y-4 animate-in fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">👑</span>
+                          <h3 className="text-base font-black text-amber-950">
+                            مدير النظام العام (Administrator / Super Admin)
+                          </h3>
+                        </div>
+                        <p className="text-xs text-amber-900 mt-1 leading-relaxed">
+                          أعلى مستوى وصول في النظام. يمتلك تحكماً كاملاً وغير مقيد على جميع خصائص الموقع، قواعد البيانات، المستخدمين، والمحتوى.
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 text-white px-3 py-1 text-xs font-black shadow-xs shrink-0 self-start">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>كامل الصلاحيات (28 من 28)</span>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-amber-200/70 text-xs">
+                      <div className="space-y-2">
+                        <h4 className="font-extrabold text-emerald-900 flex items-center gap-1.5">
+                          <Check className="h-4 w-4 text-emerald-600" />
+                          <span>ما يستطيع فعله (الصلاحيات والمهام):</span>
+                        </h4>
+                        <ul className="space-y-1.5 text-slate-700 list-disc list-inside leading-relaxed ps-1">
+                          <li><strong>إدارة كاملة للجامعات:</strong> إضافة، تعديل، تفعيل، نشر، وحذف الجامعات والتخصصات والرسوم.</li>
+                          <li><strong>إدارة الموظفين:</strong> دعوة موظفين جدد، تحديد أدوارهم، وتغيير كلمات المرور، وإلغاء الجلسات النشطة.</li>
+                          <li><strong>استفسارات الطلاب:</strong> الاطلاع على كافة طلبات واستفسارات الطلاب، توزيعها على الموظفين، وتصديرها Excel.</li>
+                          <li><strong>إعدادات النظام والواتساب:</strong> تعديل أرقام وقوالب الواتساب، سياسات الخصوصية، ووضع الصيانة.</li>
+                          <li><strong>سجلات التدقيق (Audit Logs):</strong> تتبع جميع التعديلات والإجراءات التي تمت داخل النظام.</li>
+                        </ul>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-extrabold text-slate-700 flex items-center gap-1.5">
+                          <Key className="h-4 w-4 text-amber-700" />
+                          <span>القيود الأمنية والملاحظات:</span>
+                        </h4>
+                        <div className="rounded-xl bg-white p-3 border border-amber-200 text-slate-700 space-y-1.5">
+                          <p className="text-amber-900 font-bold">⚠️ تنبيه أمني:</p>
+                          <p className="text-[11px] leading-relaxed">
+                            يُنصح بعدم إعطاء هذا الدور إلا لمالك المكتب أو المدير التقني المباشر، نظراً لقدرته على حذف السجلات والتحكم الكامل في الحسابات وقواعد البيانات.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeRoleGuideTab === 'CONTENT_EDITOR' && (
+                  <div className="rounded-2xl border-2 border-blue-200 bg-blue-50/40 p-5 space-y-4 animate-in fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">✍️</span>
+                          <h3 className="text-base font-black text-blue-950">
+                            محرر المحتوى الأكاديمي (Content Editor)
+                          </h3>
+                        </div>
+                        <p className="text-xs text-blue-900 mt-1 leading-relaxed">
+                          مخصص للموظفين المسؤولين عن إدخال وتحديث البيانات الأكاديمية للجامعات، الرسوم الدراسية، شروط التقديم، ومعارض الصور والمقالات.
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 text-white px-3 py-1 text-xs font-black shadow-xs shrink-0 self-start">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>صلاحيات أكاديمية ومحتوى (16 صلاحية)</span>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-blue-200/70 text-xs">
+                      <div className="space-y-2">
+                        <h4 className="font-extrabold text-emerald-900 flex items-center gap-1.5">
+                          <Check className="h-4 w-4 text-emerald-600" />
+                          <span>ما يستطيع فعله (الصلاحيات الممنوحة):</span>
+                        </h4>
+                        <ul className="space-y-1.5 text-slate-700 list-disc list-inside leading-relaxed ps-1">
+                          <li><strong>إضافة وتعديل الجامعات:</strong> إدخال بيانات الجامعات الصينية، برامج البكالوريوس والماجستير، وتحديث المعلومات.</li>
+                          <li><strong>الرسوم والمصروفات:</strong> تعديل جداول الرسوم الدراسية وتكاليف السكن ومصروفات المعيشة.</li>
+                          <li><strong>شروط التقديم والمستندات:</strong> تحديث متطلبات التقديم ونماذج الفحص والأوراق المطلوبة.</li>
+                          <li><strong>الوسائط ومعارض الصور:</strong> رفع وتنسيق صور الحرم الجامعي والمرافق وسكن الطلاب.</li>
+                          <li><strong>صفحات المحتوى:</strong> تعديل محتوى مقالات الموقع والأسئلة الشائعة وصفحات التعريف.</li>
+                        </ul>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-extrabold text-red-900 flex items-center gap-1.5">
+                          <X className="h-4 w-4 text-red-600" />
+                          <span>القيود (ما لا يمكنه فعله):</span>
+                        </h4>
+                        <ul className="space-y-1.5 text-slate-700 list-disc list-inside leading-relaxed ps-1">
+                          <li>❌ <strong>حذف الجامعات:</strong> لا يمكنه حذف الجامعات المنشورة نهائياً لحماية البيانات من الخطأ.</li>
+                          <li>❌ <strong>إدارة الموظفين:</strong> ليس لديه وصول لحسابات الموظفين أو كلمات المرور.</li>
+                          <li>❌ <strong>إعدادات النظام:</strong> لا يمكنه تغيير إعدادات الموقع الحساسة أو قوالب الواتساب.</li>
+                          <li>❌ <strong>تصدير بيانات الطلاب:</strong> لا يمتلك صلاحية تصدير قوائم الطلاب أو أرقام هواتفهم.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeRoleGuideTab === 'INQUIRY_OFFICER' && (
+                  <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-5 space-y-4 animate-in fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">🎧</span>
+                          <h3 className="text-base font-black text-emerald-950">
+                            مسؤول متابعة استفسارات وطلبات الطلاب (Inquiry & Admissions Officer)
+                          </h3>
+                        </div>
+                        <p className="text-xs text-emerald-900 mt-1 leading-relaxed">
+                          مخصص لمستشاري القبول وفريق خدمة العملاء للتواصل مع الطلاب المتقدمين، متابعة استفساراتهم، وتحديث مراحل قبولهم الجامعي خطوة بخطوة.
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 text-white px-3 py-1 text-xs font-black shadow-xs shrink-0 self-start">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>صلاحيات تواصل ومتابعة (7 صلاحيات)</span>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-emerald-200/70 text-xs">
+                      <div className="space-y-2">
+                        <h4 className="font-extrabold text-emerald-900 flex items-center gap-1.5">
+                          <Check className="h-4 w-4 text-emerald-600" />
+                          <span>ما يستطيع فعله (الصلاحيات الممنوحة):</span>
+                        </h4>
+                        <ul className="space-y-1.5 text-slate-700 list-disc list-inside leading-relaxed ps-1">
+                          <li><strong>متابعة طلبات الطلاب:</strong> استعراض استفسارات وطلبات الطلاب المخصصة له والتواصل معهم.</li>
+                          <li><strong>تحديث حالة الطلب:</strong> تغيير حالة الطلب (قيد المراجعة، تم التواصل، بانتظار المستندات، تم القبول، إلخ).</li>
+                          <li><strong>تدوين الملاحظات الأكاديمية:</strong> كتابة ملاحظات داخلية سرية حول محادثة الطالب وتفضيلاته.</li>
+                          <li><strong>الاطلاع على الجامعات:</strong> تصفح دليل الجامعات والبرامج والرسوم لتقديم استشارات دقيقة وموثوقة للطلاب.</li>
+                        </ul>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-extrabold text-red-900 flex items-center gap-1.5">
+                          <X className="h-4 w-4 text-red-600" />
+                          <span>القيود (ما لا يمكنه فعله):</span>
+                        </h4>
+                        <ul className="space-y-1.5 text-slate-700 list-disc list-inside leading-relaxed ps-1">
+                          <li>❌ <strong>تعديل بيانات الجامعات:</strong> لا يمكنه تعديل أسماء الجامعات أو الرسوم أو شروط القبول.</li>
+                          <li>❌ <strong>طلبات الموظفين الآخرين:</strong> لا يستطيع الاطلاع على طلبات الطلاب المخصصة لمستشارين آخرين للحفاظ على الخصوصية.</li>
+                          <li>❌ <strong>إدارة النظام:</strong> لا يمتلك أي وصول لإدارة الموظفين أو إعدادات الموقع أو سجلات التدقيق.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Create Employee Account Form */}
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
@@ -2947,90 +3165,298 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                     body: JSON.stringify(newEmployee),
                   });
                   if (res.ok) {
-                    notify('Employee account created!');
+                    notify('تم إنشاء حساب الموظف وتعيين الصلاحيات بنجاح!');
+                    setNewEmployee({
+                      name: '',
+                      email: '',
+                      password: '',
+                      roleCode: 'INQUIRY_OFFICER',
+                    });
                     loadTabData('employees');
+                  } else {
+                    const err = await res.json();
+                    notify(err?.error || 'فشل إنشاء الحساب، يرجى التأكد من البيانات');
                   }
                 }}
-                className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3 text-xs"
+                className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4 text-xs"
               >
-                <h2 className="text-sm font-bold text-slate-900">Invite / Create Employee Account</h2>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <input
-                    required
-                    placeholder="Employee Full Name *"
-                    value={newEmployee.name}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
-                    className="rounded-xl border border-slate-300 px-3 py-2"
-                  />
-                  <input
-                    type="email"
-                    required
-                    placeholder="Email Address *"
-                    value={newEmployee.email}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
-                    className="rounded-xl border border-slate-300 px-3 py-2"
-                  />
-                  <input
-                    type="password"
-                    required
-                    placeholder="Initial Password *"
-                    value={newEmployee.password}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })}
-                    className="rounded-xl border border-slate-300 px-3 py-2"
-                  />
-                  <select
-                    value={newEmployee.roleCode}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, roleCode: e.target.value })}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2"
-                  >
-                    {employeeData.roles?.map((r: any) => (
-                      <option key={r.id} value={r.code}>
-                        {r.nameEn}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                  <UserCheck className="h-5 w-5 text-brand-700" />
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900">إضافة موظف جديد وتحديد دوره الوظيفي</h2>
+                    <p className="text-[11px] text-slate-500">
+                      قم بإنشاء حساب جديد وتعيين كلمة مرور أولية مع اختيار الدور المناسب للموظف.
+                    </p>
+                  </div>
                 </div>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-brand-700 px-4 py-2 font-bold text-white"
-                >
-                  + Create Employee
-                </button>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">اسم الموظف الكامل *</label>
+                    <input
+                      required
+                      placeholder="مثال: أحمد محمد علي"
+                      value={newEmployee.name}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:border-brand-700 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">البريد الإلكتروني المهني *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="ahmed@reddragonstudy.com"
+                      value={newEmployee.email}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:border-brand-700 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">كلمة المرور الأولية *</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={newEmployee.password}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:border-brand-700 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">الدور الوظيفي والصلاحيات *</label>
+                    <select
+                      value={newEmployee.roleCode}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, roleCode: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold focus:border-brand-700 focus:outline-none"
+                    >
+                      <option value="INQUIRY_OFFICER">🎧 مسؤول متابعة استفسارات الطلاب (Inquiry Officer)</option>
+                      <option value="CONTENT_EDITOR">✍️ محرر المحتوى الأكاديمي (Content Editor)</option>
+                      <option value="ADMINISTRATOR">👑 مدير النظام العام (Super Admin)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Dynamic Role Preview Card */}
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-800 font-bold shrink-0">
+                    ℹ️
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-bold text-slate-900">
+                      الدور المحدد حالياً:{' '}
+                      <span className="text-brand-800">
+                        {newEmployee.roleCode === 'ADMINISTRATOR' && 'مدير النظام الكامل (كامل الصلاحيات 28/28)'}
+                        {newEmployee.roleCode === 'CONTENT_EDITOR' && 'محرر المحتوى الأكاديمي (إدارة الجامعات والرسوم والمحتوى بدون حذف)'}
+                        {newEmployee.roleCode === 'INQUIRY_OFFICER' && 'مسؤول الاستفسارات (متابعة طلبات الطلاب واستشارات القبول)'}
+                      </span>
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {newEmployee.roleCode === 'ADMINISTRATOR' && 'سيمتلك هذا الحساب صلاحيات مطلقة لإدارة كامل الموقع والموظفين والبيانات.'}
+                      {newEmployee.roleCode === 'CONTENT_EDITOR' && 'سيتمكن هذا الموظف من تحديث معلومات الجامعات والبرامج والرسوم والمقالات والصور.'}
+                      {newEmployee.roleCode === 'INQUIRY_OFFICER' && 'سيتمكن هذا الموظف من استقبال استفسارات الطلاب والتواصل معهم وتحديث حالة طلباتهم.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-2 rounded-xl bg-brand-700 hover:bg-brand-800 px-5 py-2.5 font-bold text-white transition shadow-xs"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>إنشاء حساب الموظف وتفعيل الصلاحيات</span>
+                  </button>
+                </div>
               </form>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
-                <h2 className="text-sm font-bold text-slate-900">Employee Directory</h2>
-                <div className="divide-y divide-slate-100 text-xs">
-                  {employeeData.employees?.map((emp: any) => (
-                    <div key={emp.id} className="py-3 flex items-center justify-between">
-                      <div>
-                        <span className="font-bold text-slate-900">{emp.name}</span> ({emp.email}) —
-                        Roles:{' '}
-                        <span className="font-semibold text-brand-700">
-                          {emp.userRoles?.map((ur: any) => ur.role.code).join(', ')}
-                        </span>
+              {/* Employee Directory with Detailed Permissions Inspector */}
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900">دليل الموظفين المسجلين في النظام</h2>
+                    <p className="text-[11px] text-slate-500">
+                      استعراض حسابات الفريق الحالية، الأدوار المسندة، وقائمة الصلاحيات الدقيقة لكل موظف.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                    {employeeData.employees?.length || 0} موظف مسجل
+                  </span>
+                </div>
+
+                <div className="divide-y divide-slate-100">
+                  {employeeData.employees?.map((emp: any) => {
+                    const isExpanded = expandedEmpId === emp.id;
+                    const roleCodes: string[] = emp.userRoles?.map((ur: any) => ur.role.code) || [];
+                    const isSuperAdmin = roleCodes.includes('ADMINISTRATOR');
+                    const isEditor = roleCodes.includes('CONTENT_EDITOR');
+                    const isInquiry = roleCodes.includes('INQUIRY_OFFICER');
+
+                    // Aggregate all granted permissions for this employee
+                    const userPermCodes = new Set<string>();
+                    emp.userRoles?.forEach((ur: any) => {
+                      const matchedRole = employeeData.roles?.find((r: any) => r.code === ur.role.code);
+                      matchedRole?.rolePermissions?.forEach((rp: any) => {
+                        userPermCodes.add(rp.permission.code);
+                      });
+                    });
+
+                    return (
+                      <div key={emp.id} className="py-4 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-brand-700 to-slate-900 text-white font-extrabold flex items-center justify-center text-sm shadow-xs shrink-0">
+                              {emp.name?.slice(0, 2).toUpperCase() || 'EM'}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold text-slate-900 text-sm">{emp.name}</span>
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                  emp.isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                                }`}>
+                                  {emp.isActive ? 'حساب نشط' : 'معطل'}
+                                </span>
+                              </div>
+                              <span className="text-xs text-slate-500 font-mono">{emp.email}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Role Badges */}
+                            {isSuperAdmin && (
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1 text-xs font-black text-amber-900">
+                                <span>👑 مدير النظام (Admin)</span>
+                              </span>
+                            )}
+                            {isEditor && (
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-blue-50 border border-blue-300 px-2.5 py-1 text-xs font-black text-blue-900">
+                                <span>✍️ محرر المحتوى (Editor)</span>
+                              </span>
+                            )}
+                            {isInquiry && (
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-300 px-2.5 py-1 text-xs font-black text-emerald-900">
+                                <span>🎧 مسؤول الاستفسارات (Inquiries)</span>
+                              </span>
+                            )}
+
+                            {/* Toggle Detailed Permissions Inspector */}
+                            <button
+                              type="button"
+                              onClick={() => setExpandedEmpId(isExpanded ? null : emp.id)}
+                              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 hover:border-brand-400 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-brand-800 transition"
+                            >
+                              <span>{isExpanded ? 'إخفاء الصلاحيات' : 'عرض الصلاحيات التفصيلية'}</span>
+                              {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </button>
+
+                            {/* Revoke Sessions */}
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await fetch('/api/admin/employees', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    userId: emp.id,
+                                    revokeSessions: true,
+                                  }),
+                                });
+                                notify(`تم تسجيل الخروج وإلغاء جميع الجلسات النشطة لـ ${emp.email}`);
+                              }}
+                              className="rounded-xl border border-red-200 bg-red-50/50 hover:bg-red-100 text-red-800 px-3 py-1.5 text-xs font-bold transition"
+                              title="تسجيل خروج إجباري للحساب"
+                            >
+                              إلغاء الجلسات النشطة
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Expandable Permissions Breakdown */}
+                        {isExpanded && (
+                          <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-3 text-xs animate-in fade-in">
+                            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                              <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                                <Key className="h-4 w-4 text-brand-700" />
+                                <span>الصلاحيات الممنوحة لـ {emp.name}:</span>
+                              </span>
+                              <span className="text-[11px] font-bold text-brand-800 bg-brand-50 px-2 py-0.5 rounded-md">
+                                {isSuperAdmin ? 'كامل الصلاحيات (28/28)' : `${userPermCodes.size} صلاحية مفعلة`}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 pt-1">
+                              {/* Group: Universities */}
+                              <div className="rounded-xl bg-white p-2.5 border border-slate-200 space-y-1">
+                                <span className="font-bold text-[11px] text-slate-500 uppercase block">الجامعات والبرامج</span>
+                                <div className="space-y-1 text-[11px]">
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('universities:read') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('universities:read') ? '✓' : '✗'} استعراض الجامعات</span>
+                                  </div>
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('universities:write') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('universities:write') ? '✓' : '✗'} تعديل وإضافة الجامعات</span>
+                                  </div>
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('universities:delete') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('universities:delete') ? '✓' : '✗'} حذف الجامعات</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Group: Inquiries */}
+                              <div className="rounded-xl bg-white p-2.5 border border-slate-200 space-y-1">
+                                <span className="font-bold text-[11px] text-slate-500 uppercase block">استفسارات الطلاب</span>
+                                <div className="space-y-1 text-[11px]">
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('inquiries:read_assigned') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('inquiries:read_assigned') ? '✓' : '✗'} متابعة طلبات الطلاب</span>
+                                  </div>
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('inquiries:read_all') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('inquiries:read_all') ? '✓' : '✗'} الاطلاع على كل الطلبات</span>
+                                  </div>
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('inquiries:export') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('inquiries:export') ? '✓' : '✗'} تصدير بيانات الطلاب</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Group: Content & Media */}
+                              <div className="rounded-xl bg-white p-2.5 border border-slate-200 space-y-1">
+                                <span className="font-bold text-[11px] text-slate-500 uppercase block">المحتوى والوسائط</span>
+                                <div className="space-y-1 text-[11px]">
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('media:write') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('media:write') ? '✓' : '✗'} رفع وإدارة الصور</span>
+                                  </div>
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('content:write') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('content:write') ? '✓' : '✗'} تعديل صفحات الموقع</span>
+                                  </div>
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('scholarships:write') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('scholarships:write') ? '✓' : '✗'} تعديل المنح الدراسية</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Group: System & Staff */}
+                              <div className="rounded-xl bg-white p-2.5 border border-slate-200 space-y-1">
+                                <span className="font-bold text-[11px] text-slate-500 uppercase block">النظام والموظفين</span>
+                                <div className="space-y-1 text-[11px]">
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('employees:manage') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('employees:manage') ? '✓' : '✗'} إدارة حسابات الموظفين</span>
+                                  </div>
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('contact:manage') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('contact:manage') ? '✓' : '✗'} إدارة الواتساب والتواصل</span>
+                                  </div>
+                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('settings:manage') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                                    <span>{isSuperAdmin || userPermCodes.has('settings:manage') ? '✓' : '✗'} إعدادات النظام الحساسة</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            await fetch('/api/admin/employees', {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                userId: emp.id,
-                                revokeSessions: true,
-                              }),
-                            });
-                            notify(`Revoked active sessions for ${emp.email}`);
-                          }}
-                          className="rounded-lg border border-slate-200 px-2.5 py-1 font-semibold text-slate-700"
-                        >
-                          Revoke Sessions
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
