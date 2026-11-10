@@ -1,7 +1,6 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireApiAuth } from '@/lib/auth';
 import { findKnownUniversity, suggestKnownUniversities } from '@/lib/university-lookup';
-import { QS_SOURCE_URL } from '@/lib/china-universities-data';
 import { lookupUniversityOnline } from '@/lib/university-online-lookup';
 
 export async function GET(req: NextRequest) {
@@ -42,7 +41,6 @@ export async function GET(req: NextRequest) {
     descriptionEn: online?.descriptionEn || null,
     descriptionAr: online?.descriptionAr || null,
     infoSourceUrl: online?.sourceUrl || null,
-    qs: known?.qs ? { ...known.qs, sourceUrl: QS_SOURCE_URL } : null,
   };
 
   return NextResponse.json({ suggestions, result });

@@ -13,7 +13,6 @@ import {
   maskUniversityIdentityInText,
   matchesUniversityCodeOrName,
 } from './university-code';
-import { resolveQsRanking } from './university-lookup';
 
 export interface UniversitySearchFilters {
   q?: string;
@@ -167,7 +166,6 @@ export function sanitizePublicUniversity(uni: any, warningDays = 30, allowPrevie
   return {
     ...safeUni,
     universityCode,
-    qsRanking: resolveQsRanking(uni),
     nameEn: publicNameEn,
     nameAr: publicNameAr,
     nameZh: null,

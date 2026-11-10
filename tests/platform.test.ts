@@ -40,8 +40,6 @@ import {
 } from '@/lib/university-code';
 import {
   findKnownUniversity,
-  formatQsRankingInfo,
-  resolveQsRanking,
   suggestKnownUniversities,
 } from '@/lib/university-lookup';
 import { getDirection, UI_LABELS } from '@/lib/i18n';
@@ -523,35 +521,12 @@ describe('Red Dragon Study — Complete Platform Automated Test Suite', () => {
       expect(matchesUniversityCodeOrName(sampleUni, 'UNI-0000')).toBe(false);
     });
 
-    it('auto-detects city/province for known universities and only shows verified or admin-confirmed QS ranks', () => {
+    it('auto-detects city/province for known universities', () => {
       const zju = findKnownUniversity('zhejiang university');
       expect(zju?.city).toBe('Hangzhou');
       expect(zju?.province).toBe('Zhejiang');
       expect(findKnownUniversity('浙江大学')?.nameEn).toBe('Zhejiang University');
       expect(suggestKnownUniversities('Peking')[0].nameEn).toBe('Peking University');
-
-      // Verified dataset rank is shown
-      expect(resolveQsRanking({ nameEn: 'Peking University' })?.rank).toBe('13');
-      // Unverified dataset rank is NOT shown publicly
-      expect(resolveQsRanking({ nameEn: 'Tongji University' })).toBeNull();
-      // Unknown university never gets a fabricated rank
-      expect(resolveQsRanking({ nameEn: 'Some Unknown College' })).toBeNull();
-      // Admin-confirmed rank always wins
-      const info = formatQsRankingInfo('401-410', 2027);
-      expect(resolveQsRanking({ nameEn: 'Tongji University', ...info })).toEqual({
-        rank: '401-410',
-        year: 2027,
-        source: 'ADMIN',
-      });
-
-      const sanitized = sanitizePublicUniversity({
-        id: 'x',
-        slug: 'peking-university',
-        nameEn: 'Peking University',
-        status: 'PUBLISHED',
-        isEnabled: true,
-      }) as any;
-      expect(sanitized.qsRanking.rank).toBe('13');
     });
   });
 

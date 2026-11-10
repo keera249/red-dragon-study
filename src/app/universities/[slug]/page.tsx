@@ -164,27 +164,6 @@ export default async function UniversityDetailPage({
                   </span>
                 </div>
 
-                {(uni as any).qsRanking && (
-                  <div className="flex">
-                    <div className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-l from-indigo-700 to-blue-600 px-4 py-2.5 text-white shadow-md">
-                      <span className="text-2xl" aria-hidden>🏆</span>
-                      <div className="leading-tight">
-                        <span className="block text-[11px] font-bold text-blue-100">
-                          {lang === 'ar'
-                            ? `تصنيف QS العالمي للجامعات ${(uni as any).qsRanking.year}`
-                            : `QS World University Rankings ${(uni as any).qsRanking.year}`}
-                        </span>
-                        <span className="block text-xl sm:text-2xl font-black tracking-wide">
-                          {lang === 'ar' ? 'المرتبة ' : 'Rank '}#{(uni as any).qsRanking.rank}
-                          <span className="text-xs font-bold text-blue-100">
-                            {lang === 'ar' ? ' عالمياً' : ' worldwide'}
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900">{uName}</h1>
                 </div>

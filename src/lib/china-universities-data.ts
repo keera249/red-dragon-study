@@ -1,23 +1,7 @@
 /**
  * Curated reference dataset of Chinese universities used to auto-fill the Admin
- * "Add University" form (city, province, Chinese/Arabic names) and to display
- * the QS World University Ranking on public university pages.
- *
- * QS ACCURACY POLICY
- * ------------------
- * - `qs.verified === true`  → rank was cross-checked against multiple independent
- *   publications of the official QS World University Rankings table. It is shown
- *   publicly automatically.
- * - `qs.verified === false` → rank was found in a single source only (or sources
- *   disagreed). It is ONLY suggested to the Admin inside the dashboard and is NOT
- *   shown publicly until the Admin confirms/saves it in the QS field.
- * - Universities without a `qs` entry never get a fabricated rank.
- *
- * When QS publishes a new edition, update `QS_EDITION_YEAR` and the ranks below.
+ * "Add University" form (city, province, Chinese/Arabic names).
  */
-
-export const QS_EDITION_YEAR = 2027;
-export const QS_SOURCE_URL = 'https://www.topuniversities.com/world-university-rankings';
 
 export interface KnownUniversity {
   nameEn: string;
@@ -29,35 +13,28 @@ export interface KnownUniversity {
   province: string;
   provinceAr: string;
   universityType?: string;
-  qs?: { rank: string; year: number; verified: boolean };
 }
 
 const DFC = 'جامعة بحثية حكومية (Double First-Class)';
 const PUB = 'جامعة حكومية';
 
-const v = (rank: string) => ({ rank, year: QS_EDITION_YEAR, verified: true });
-const u = (rank: string) => ({ rank, year: QS_EDITION_YEAR, verified: false });
-
 export const KNOWN_CHINESE_UNIVERSITIES: KnownUniversity[] = [
-  // ── QS ranked (cross-verified) ──────────────────────────────────────────
-  { nameEn: 'Peking University', aliases: ['PKU', 'Beijing University'], nameZh: '北京大学', nameAr: 'جامعة بكين', city: 'Beijing', cityAr: 'بكين', province: 'Beijing', provinceAr: 'بكين', universityType: DFC, qs: v('13') },
-  { nameEn: 'Tsinghua University', aliases: ['THU'], nameZh: '清华大学', nameAr: 'جامعة تسينغهوا', city: 'Beijing', cityAr: 'بكين', province: 'Beijing', provinceAr: 'بكين', universityType: DFC, qs: v('14') },
-  { nameEn: 'Fudan University', nameZh: '复旦大学', nameAr: 'جامعة فودان', city: 'Shanghai', cityAr: 'شانغهاي', province: 'Shanghai', provinceAr: 'شانغهاي', universityType: DFC, qs: v('26') },
-  { nameEn: 'Shanghai Jiao Tong University', aliases: ['SJTU', 'Shanghai Jiaotong University'], nameZh: '上海交通大学', nameAr: 'جامعة شانغهاي جياو تونغ', city: 'Shanghai', cityAr: 'شانغهاي', province: 'Shanghai', provinceAr: 'شانغهاي', universityType: DFC, qs: v('36') },
-  { nameEn: 'Zhejiang University', aliases: ['ZJU'], nameZh: '浙江大学', nameAr: 'جامعة تشجيانغ', city: 'Hangzhou', cityAr: 'هانغتشو', province: 'Zhejiang', provinceAr: 'تشجيانغ', universityType: DFC, qs: v('47') },
-  { nameEn: 'Nanjing University', aliases: ['NJU'], nameZh: '南京大学', nameAr: 'جامعة نانجينغ', city: 'Nanjing', cityAr: 'نانجينغ', province: 'Jiangsu', provinceAr: 'جيانغسو', universityType: DFC, qs: v('90') },
-  { nameEn: 'Wuhan University', aliases: ['WHU'], nameZh: '武汉大学', nameAr: 'جامعة ووهان', city: 'Wuhan', cityAr: 'ووهان', province: 'Hubei', provinceAr: 'هوبي', universityType: DFC, qs: v('165') },
-  { nameEn: 'Harbin Institute of Technology', aliases: ['HIT'], nameZh: '哈尔滨工业大学', nameAr: 'معهد هاربين للتكنولوجيا', city: 'Harbin', cityAr: 'هاربين', province: 'Heilongjiang', provinceAr: 'هيلونغجيانغ', universityType: DFC, qs: v('190') },
-
-  // ── QS ranked (single source / conflicting — Admin must confirm) ─────────
-  { nameEn: 'University of Science and Technology of China', aliases: ['USTC'], nameZh: '中国科学技术大学', nameAr: 'جامعة العلوم والتكنولوجيا الصينية', city: 'Hefei', cityAr: 'خفي', province: 'Anhui', provinceAr: 'آنهوي', universityType: DFC, qs: u('133') },
-  { nameEn: 'Tongji University', nameZh: '同济大学', nameAr: 'جامعة تونغجي', city: 'Shanghai', cityAr: 'شانغهاي', province: 'Shanghai', provinceAr: 'شانغهاي', universityType: DFC, qs: u('140') },
-  { nameEn: 'Tianjin University', nameZh: '天津大学', nameAr: 'جامعة تيانجين', city: 'Tianjin', cityAr: 'تيانجين', province: 'Tianjin', provinceAr: 'تيانجين', universityType: DFC, qs: u('235') },
-  { nameEn: 'Beijing Normal University', aliases: ['BNU'], nameZh: '北京师范大学', nameAr: 'جامعة بكين للمعلمين', city: 'Beijing', cityAr: 'بكين', province: 'Beijing', provinceAr: 'بكين', universityType: DFC, qs: u('237') },
-  { nameEn: 'Beijing Institute of Technology', aliases: ['BIT'], nameZh: '北京理工大学', nameAr: 'معهد بكين للتكنولوجيا', city: 'Beijing', cityAr: 'بكين', province: 'Beijing', provinceAr: 'بكين', universityType: DFC, qs: u('243') },
-  { nameEn: 'Sun Yat-sen University', aliases: ['SYSU', 'Sun Yat-Sen University', 'Zhongshan University'], nameZh: '中山大学', nameAr: 'جامعة صن يات سين', city: 'Guangzhou', cityAr: 'قوانغتشو', province: 'Guangdong', provinceAr: 'قوانغدونغ', universityType: DFC, qs: u('258') },
-  { nameEn: "Xi'an Jiaotong University", aliases: ['XJTU', 'Xian Jiaotong University'], nameZh: '西安交通大学', nameAr: 'جامعة شيآن جياوتونغ', city: "Xi'an", cityAr: 'شيآن', province: 'Shaanxi', provinceAr: 'شنشي', universityType: DFC, qs: u('296') },
-  { nameEn: 'Huazhong University of Science and Technology', aliases: ['HUST'], nameZh: '华中科技大学', nameAr: 'جامعة هواتشونغ للعلوم والتكنولوجيا', city: 'Wuhan', cityAr: 'ووهان', province: 'Hubei', provinceAr: 'هوبي', universityType: DFC, qs: u('307') },
+  { nameEn: 'Peking University', aliases: ['PKU', 'Beijing University'], nameZh: '北京大学', nameAr: 'جامعة بكين', city: 'Beijing', cityAr: 'بكين', province: 'Beijing', provinceAr: 'بكين', universityType: DFC },
+  { nameEn: 'Tsinghua University', aliases: ['THU'], nameZh: '清华大学', nameAr: 'جامعة تسينغهوا', city: 'Beijing', cityAr: 'بكين', province: 'Beijing', provinceAr: 'بكين', universityType: DFC },
+  { nameEn: 'Fudan University', nameZh: '复旦大学', nameAr: 'جامعة فودان', city: 'Shanghai', cityAr: 'شانغهاي', province: 'Shanghai', provinceAr: 'شانغهاي', universityType: DFC },
+  { nameEn: 'Shanghai Jiao Tong University', aliases: ['SJTU', 'Shanghai Jiaotong University'], nameZh: '上海交通大学', nameAr: 'جامعة شانغهاي جياو تونغ', city: 'Shanghai', cityAr: 'شانغهاي', province: 'Shanghai', provinceAr: 'شانغهاي', universityType: DFC },
+  { nameEn: 'Zhejiang University', aliases: ['ZJU'], nameZh: '浙江大学', nameAr: 'جامعة تشجيانغ', city: 'Hangzhou', cityAr: 'هانغتشو', province: 'Zhejiang', provinceAr: 'تشجيانغ', universityType: DFC },
+  { nameEn: 'Nanjing University', aliases: ['NJU'], nameZh: '南京大学', nameAr: 'جامعة نانجينغ', city: 'Nanjing', cityAr: 'نانجينغ', province: 'Jiangsu', provinceAr: 'جيانغسو', universityType: DFC },
+  { nameEn: 'Wuhan University', aliases: ['WHU'], nameZh: '武汉大学', nameAr: 'جامعة ووهان', city: 'Wuhan', cityAr: 'ووهان', province: 'Hubei', provinceAr: 'هوبي', universityType: DFC },
+  { nameEn: 'Harbin Institute of Technology', aliases: ['HIT'], nameZh: '哈尔滨工业大学', nameAr: 'معهد هاربين للتكنولوجيا', city: 'Harbin', cityAr: 'هاربين', province: 'Heilongjiang', provinceAr: 'هيلونغجيانغ', universityType: DFC },
+  { nameEn: 'University of Science and Technology of China', aliases: ['USTC'], nameZh: '中国科学技术大学', nameAr: 'جامعة العلوم والتكنولوجيا الصينية', city: 'Hefei', cityAr: 'خفي', province: 'Anhui', provinceAr: 'آنهوي', universityType: DFC },
+  { nameEn: 'Tongji University', nameZh: '同济大学', nameAr: 'جامعة تونغجي', city: 'Shanghai', cityAr: 'شانغهاي', province: 'Shanghai', provinceAr: 'شانغهاي', universityType: DFC },
+  { nameEn: 'Tianjin University', nameZh: '天津大学', nameAr: 'جامعة تيانجين', city: 'Tianjin', cityAr: 'تيانجين', province: 'Tianjin', provinceAr: 'تيانجين', universityType: DFC },
+  { nameEn: 'Beijing Normal University', aliases: ['BNU'], nameZh: '北京师范大学', nameAr: 'جامعة بكين للمعلمين', city: 'Beijing', cityAr: 'بكين', province: 'Beijing', provinceAr: 'بكين', universityType: DFC },
+  { nameEn: 'Beijing Institute of Technology', aliases: ['BIT'], nameZh: '北京理工大学', nameAr: 'معهد بكين للتكنولوجيا', city: 'Beijing', cityAr: 'بكين', province: 'Beijing', provinceAr: 'بكين', universityType: DFC },
+  { nameEn: 'Sun Yat-sen University', aliases: ['SYSU', 'Sun Yat-Sen University', 'Zhongshan University'], nameZh: '中山大学', nameAr: 'جامعة صن يات سين', city: 'Guangzhou', cityAr: 'قوانغتشو', province: 'Guangdong', provinceAr: 'قوانغدونغ', universityType: DFC },
+  { nameEn: "Xi'an Jiaotong University", aliases: ['XJTU', 'Xian Jiaotong University'], nameZh: '西安交通大学', nameAr: 'جامعة شيآن جياوتونغ', city: "Xi'an", cityAr: 'شيآن', province: 'Shaanxi', provinceAr: 'شنشي', universityType: DFC },
+  { nameEn: 'Huazhong University of Science and Technology', aliases: ['HUST'], nameZh: '华中科技大学', nameAr: 'جامعة هواتشونغ للعلوم والتكنولوجيا', city: 'Wuhan', cityAr: 'ووهان', province: 'Hubei', provinceAr: 'هوبي', universityType: DFC },
 
   // ── Location reference only (no QS rank stored) ──────────────────────────
   { nameEn: 'Sichuan University', nameZh: '四川大学', nameAr: 'جامعة سيتشوان', city: 'Chengdu', cityAr: 'تشنغدو', province: 'Sichuan', provinceAr: 'سيتشوان', universityType: DFC },

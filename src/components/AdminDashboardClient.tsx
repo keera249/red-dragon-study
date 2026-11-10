@@ -42,8 +42,6 @@ import {
 } from 'lucide-react';
 import { ALL_PERMISSIONS, AuthenticatedActor, DEFAULT_ROLE_PERMISSIONS } from '@/lib/rbac';
 import { generateUniversityCode, matchesUniversityCodeOrName } from '@/lib/university-code';
-import { formatQsRankingInfo, parseQsRankingInfo } from '@/lib/university-lookup';
-import { QS_EDITION_YEAR } from '@/lib/china-universities-data';
 
 interface UniLookupResult {
   matchedFrom: 'DATASET' | 'ONLINE' | 'DATASET+ONLINE';
@@ -58,7 +56,6 @@ interface UniLookupResult {
   descriptionEn: string | null;
   descriptionAr: string | null;
   infoSourceUrl: string | null;
-  qs: { rank: string; year: number; verified: boolean; sourceUrl: string } | null;
 }
 
 const PERMISSION_ARABIC_META: Record<
@@ -660,8 +657,6 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
     setNewUni((prev) => {
       const fill = (cur: string, val: string | null) =>
         overwrite ? val || cur : cur.trim() ? cur : val || cur;
-      const qsInfo = r.qs?.verified ? formatQsRankingInfo(r.qs.rank, r.qs.year) : null;
-      const keepRanking = !overwrite && prev.rankingInfoEn.trim();
       return {
         ...prev,
         nameAr: fill(prev.nameAr, r.nameAr),
@@ -671,8 +666,6 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
         universityType: r.universityType || prev.universityType,
         shortDescriptionEn: fill(prev.shortDescriptionEn, r.descriptionEn),
         shortDescriptionAr: fill(prev.shortDescriptionAr, r.descriptionAr),
-        rankingInfoEn: keepRanking ? prev.rankingInfoEn : qsInfo?.rankingInfoEn ?? prev.rankingInfoEn,
-        rankingInfoAr: keepRanking ? prev.rankingInfoAr : qsInfo?.rankingInfoAr ?? prev.rankingInfoAr,
       };
     });
   };
@@ -1407,7 +1400,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           {uniLookup.loading ? (
                             <div className="flex items-center gap-2 text-sky-900 font-bold">
                               <RefreshCw className="h-4 w-4 animate-spin" />
-                              <span>جاري البحث التلقائي عن موقع الجامعة والمعلومات المنشورة عنها وتصنيف QS...</span>
+                              <span>جاري البحث التلقائي عن موقع الجامعة والمعلومات المنشورة عنها...</span>
                             </div>
                           ) : uniLookup.result ? (
                             <>
@@ -1434,7 +1427,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                                   تطبيق كل المعلومات على النموذج
                                 </button>
                               </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
                                 <div className="rounded-lg bg-white border border-sky-100 p-2">
                                   <span className="block text-slate-500">📍 المدينة</span>
                                   <span className="font-extrabold text-slate-900">
@@ -1448,41 +1441,6 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                                     {uniLookup.result.provinceAr || uniLookup.result.province || 'غير معروف'}
                                     {uniLookup.result.province && uniLookup.result.provinceAr ? ` (${uniLookup.result.province})` : ''}
                                   </span>
-                                </div>
-                                <div className="rounded-lg bg-white border border-sky-100 p-2">
-                                  <span className="block text-slate-500">🏆 تصنيف QS {uniLookup.result.qs?.year || QS_EDITION_YEAR}</span>
-                                  {uniLookup.result.qs ? (
-                                    uniLookup.result.qs.verified ? (
-                                      <span className="font-extrabold text-emerald-800">
-                                        #{uniLookup.result.qs.rank} ✓ موثّق (يُعرض للطلاب تلقائياً)
-                                      </span>
-                                    ) : (
-                                      <span className="font-bold text-amber-800 block">
-                                        #{uniLookup.result.qs.rank} — يحتاج تأكيد
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const info = formatQsRankingInfo(uniLookup.result!.qs!.rank, uniLookup.result!.qs!.year);
-                                            setNewUni((prev) => ({ ...prev, ...info }));
-                                            notify('تم تأكيد تصنيف QS — سيظهر للطلاب بعد الحفظ');
-                                          }}
-                                          className="mr-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white px-2 py-0.5 text-[10px]"
-                                        >
-                                          تأكيد بعد المراجعة
-                                        </button>
-                                        <a
-                                          href={uniLookup.result.qs.sourceUrl}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="mr-1 text-[10px] underline text-amber-900"
-                                        >
-                                          راجع في موقع QS
-                                        </a>
-                                      </span>
-                                    )
-                                  ) : (
-                                    <span className="font-bold text-slate-500">غير متوفر — لن يُعرض أي تصنيف (يمكنك إدخاله يدوياً)</span>
-                                  )}
                                 </div>
                               </div>
                               {(uniLookup.result.descriptionAr || uniLookup.result.descriptionEn) && (
@@ -1538,33 +1496,6 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           onChange={(e) => setNewUni({ ...newUni, universityType: e.target.value })}
                           className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
                         />
-                      </div>
-
-                      <div>
-                        <label className="block font-bold text-slate-700 mb-1">
-                          🏆 تصنيف QS العالمي (يظهر أعلى صفحة الجامعة)
-                        </label>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-500 font-bold">#</span>
-                          <input
-                            placeholder="مثال: 47 أو 401-410 (اتركه فارغاً لإخفائه)"
-                            value={parseQsRankingInfo(newUni.rankingInfoEn)?.rank || ''}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/[^0-9\-–]/g, '');
-                              if (!val) {
-                                setNewUni({ ...newUni, rankingInfoEn: '', rankingInfoAr: '' });
-                              } else {
-                                const year = parseQsRankingInfo(newUni.rankingInfoEn)?.year || QS_EDITION_YEAR;
-                                setNewUni({ ...newUni, ...formatQsRankingInfo(val, year) });
-                              }
-                            }}
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
-                            dir="ltr"
-                          />
-                        </div>
-                        <span className="text-[10px] text-slate-500">
-                          {newUni.rankingInfoEn ? newUni.rankingInfoEn : 'لا يوجد تصنيف — لن يظهر شيء للطلاب'}
-                        </span>
                       </div>
 
                       <div className="rounded-xl border-2 border-amber-300 bg-amber-50/70 p-3 flex flex-col justify-between">
