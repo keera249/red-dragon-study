@@ -5,7 +5,8 @@ import { BookOpen, Calendar, ExternalLink, GraduationCap } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { getCurrentLocale } from '@/lib/i18n-server';
 import { UI_LABELS } from '@/lib/i18n';
-import { getLocalizedText, isRecordPubliclyVisible, isValidPublicUrl } from '@/lib/visibility';
+import { getLocalizedText, isRecordPubliclyVisible } from '@/lib/visibility';
+import { findUniversityBySlugOrCode, sanitizePublicUniversity } from '@/lib/public-data';
 import { evaluateDeadline } from '@/lib/deadlines';
 import { PublicHeader } from '@/components/PublicHeader';
 import { PublicFooter } from '@/components/PublicFooter';
@@ -24,21 +25,13 @@ export default async function AcademicProgramDetailPage({
   const lang = await getCurrentLocale(sp?.lang);
   const t = UI_LABELS[lang];
 
-  const uni = await prisma.university.findUnique({
-    where: { slug },
-    include: {
-      programs: {
-        where: { slug: programSlug },
-      },
+  const rawUni = await findUniversityBySlugOrCode(slug, {
+    programs: {
+      where: { slug: programSlug },
     },
   });
 
-  if (!uni || !isRecordPubliclyVisible(uni)) {
-    notFound();
-  }
-
-  const prog = uni.programs[0];
-  if (!prog || !isRecordPubliclyVisible(prog)) {
+  if (!rawUni || !isRecordPubliclyVisible(rawUni)) {
     notFound();
   }
 
@@ -47,6 +40,16 @@ export default async function AcademicProgramDetailPage({
     prisma.contactSetting.findUnique({ where: { id: 'default' } }),
     prisma.whatsAppTemplate.findMany({ where: { isEnabled: true } }),
   ]);
+
+  const uni = sanitizePublicUniversity(rawUni, sys?.deadlineWarningDays ?? 30, false);
+  if (!uni) {
+    notFound();
+  }
+
+  const prog = uni.programs[0];
+  if (!prog || !isRecordPubliclyVisible(prog)) {
+    notFound();
+  }
 
   const deadlineInfo = evaluateDeadline(
     {
@@ -78,7 +81,7 @@ export default async function AcademicProgramDetailPage({
             {t.nav.universities}
           </Link>{' '}
           /{' '}
-          <Link href={`/universities/${uni.slug}`} className="hover:text-brand-700">
+          <Link href={`/universities/${uni.universityCode || uni.slug}`} className="hover:text-brand-700">
             {uName}
           </Link>{' '}
           / <span className="text-slate-900">{pName}</span>
@@ -88,6 +91,9 @@ export default async function AcademicProgramDetailPage({
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-lg bg-amber-100 border border-amber-300 px-3 py-1 text-xs font-mono font-black text-amber-950">
+                  {lang === 'ar' ? `كود الجامعة: ${uni.universityCode}` : `Code: ${uni.universityCode}`}
+                </span>
                 <span className="rounded-lg bg-brand-50 px-3 py-1 text-xs font-bold text-brand-800">
                   {t.degrees[prog.degreeLevel] || prog.degreeLevel}
                 </span>
@@ -96,7 +102,6 @@ export default async function AcademicProgramDetailPage({
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{pName}</h1>
-              {prog.nameZh && <p className="text-sm font-medium text-brand-700">{prog.nameZh}</p>}
               <p className="text-sm text-slate-600">{uName}</p>
             </div>
 
@@ -117,24 +122,12 @@ export default async function AcademicProgramDetailPage({
                   universityId={uni.id}
                   programId={prog.id}
                   variables={{
-                    university_name: uName,
+                    university_name: `${uName} (${uni.universityCode})`,
                     major_name: pName,
                     city: uni.city,
                     application_deadline: deadlineInfo.formattedClosingDate,
                   }}
                 />
-              )}
-
-              {isValidPublicUrl(prog.officialProgramUrl) && (
-                <a
-                  href={prog.officialProgramUrl!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  <span>{lang === 'ar' ? 'رابط البرنامج الرسمي' : 'Official Program Page'}</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
               )}
             </div>
           </div>

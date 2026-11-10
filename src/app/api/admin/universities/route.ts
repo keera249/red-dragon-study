@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireApiAuth } from '@/lib/auth';
 import { hasPermission } from '@/lib/rbac';
 import { recordAuditLog } from '@/lib/audit';
+import { generateUniversityCode } from '@/lib/university-code';
 
 const programItemSchema = z.object({
   nameEn: z.string().trim().min(1),
@@ -137,7 +138,12 @@ export async function GET() {
     orderBy: { updatedAt: 'desc' },
   });
 
-  return NextResponse.json({ universities });
+  const enriched = universities.map((u) => ({
+    ...u,
+    universityCode: generateUniversityCode(u),
+  }));
+
+  return NextResponse.json({ universities: enriched });
 }
 
 export async function POST(req: NextRequest) {

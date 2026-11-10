@@ -22,6 +22,11 @@ import {
 } from '@/lib/visibility';
 import { evaluateDeadline } from '@/lib/deadlines';
 import { sanitizePublicUniversity } from '@/lib/public-data';
+import {
+  generateUniversityCode,
+  getPublicUniversityName,
+  maskUniversityIdentityInText,
+} from '@/lib/university-code';
 import { getAuthenticatedActor } from '@/lib/auth';
 import { PublicHeader } from '@/components/PublicHeader';
 import { PublicFooter } from '@/components/PublicFooter';
@@ -306,17 +311,15 @@ export default async function HomePage({
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={uni.logoUrl || '/logo.jpeg'}
+                        src="/logo.jpeg"
                         alt={uName || uni.nameEn}
                         className="h-12 w-12 rounded-xl object-cover border border-slate-200"
                       />
                       <div>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 border border-amber-300 px-2 py-0.5 text-[11px] font-mono font-black text-amber-950 mb-1">
+                          {lang === 'ar' ? `كود الجامعة: ${uni.universityCode}` : `Code: ${uni.universityCode}`}
+                        </span>
                         <h3 className="font-bold text-slate-900 text-base">{uName}</h3>
-                        {uni.nameZh && (
-                          <span className="text-xs font-medium text-brand-700 block">
-                            {uni.nameZh}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -349,7 +352,7 @@ export default async function HomePage({
 
                   <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                     <Link
-                      href={`/universities/${uni.slug}`}
+                      href={`/universities/${uni.universityCode || uni.slug}`}
                       className="rounded-xl bg-brand-700 px-4 py-2 text-xs font-bold text-white hover:bg-brand-800 transition"
                     >
                       {t.common.viewDetails}
@@ -395,8 +398,15 @@ export default async function HomePage({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {rawScholarships.slice(0, 4).map((sch) => {
-                const sName = getLocalizedText(lang, sch.nameAr, sch.nameEn);
-                const sProvider = getLocalizedText(lang, sch.providerAr, sch.providerEn);
+                let sName = getLocalizedText(lang, sch.nameAr, sch.nameEn);
+                let sProvider = getLocalizedText(lang, sch.providerAr, sch.providerEn);
+                for (const link of sch.universityLinks) {
+                  if (link.university) {
+                    const uCode = generateUniversityCode(link.university);
+                    sName = maskUniversityIdentityInText(sName, link.university, uCode);
+                    sProvider = maskUniversityIdentityInText(sProvider, link.university, uCode);
+                  }
+                }
                 const sTuition = getLocalizedText(
                   lang,
                   sch.tuitionCoverageAr,
@@ -496,7 +506,12 @@ export default async function HomePage({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {visibleDeadlines.map((dl) => {
-              const dlTitle = getLocalizedText(lang, dl.titleAr, dl.titleEn);
+              const uCode = dl.university ? generateUniversityCode(dl.university) : null;
+              const rawDlTitle = getLocalizedText(lang, dl.titleAr, dl.titleEn);
+              const dlTitle =
+                dl.university && uCode
+                  ? maskUniversityIdentityInText(rawDlTitle, dl.university, uCode)
+                  : rawDlTitle;
               const isApproaching = dl.evaluated.status === 'DEADLINE_APPROACHING';
               return (
                 <div
@@ -532,13 +547,13 @@ export default async function HomePage({
                       </p>
                     )}
                   </div>
-                  {dl.university && (
+                  {dl.university && uCode && (
                     <div className="mt-4 pt-3 border-t border-slate-100">
                       <Link
-                        href={`/universities/${dl.university.slug}`}
+                        href={`/universities/${uCode}`}
                         className="text-xs font-semibold text-brand-700 hover:underline"
                       >
-                        {getLocalizedText(lang, dl.university.nameAr, dl.university.nameEn)} →
+                        {getPublicUniversityName(uCode, lang)} →
                       </Link>
                     </div>
                   )}

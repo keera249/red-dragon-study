@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { getCurrentLocale } from '@/lib/i18n-server';
 import { UI_LABELS } from '@/lib/i18n';
+import { generateUniversityCode, getPublicUniversityName } from '@/lib/university-code';
 import { PublicHeader } from '@/components/PublicHeader';
 import { PublicFooter } from '@/components/PublicFooter';
 import { CompareTableClient } from '@/components/CompareTableClient';
@@ -15,10 +16,19 @@ export default async function CompareUniversitiesPage({
   const lang = await getCurrentLocale(sp?.lang);
   const t = UI_LABELS[lang];
 
-  const allPublished = await prisma.university.findMany({
+  const rawPublished = await prisma.university.findMany({
     where: { status: 'PUBLISHED' },
     select: { slug: true, nameEn: true, nameAr: true },
     orderBy: { nameEn: 'asc' },
+  });
+
+  const allPublished = rawPublished.map((u) => {
+    const code = generateUniversityCode(u);
+    return {
+      slug: u.slug,
+      nameEn: getPublicUniversityName(code, 'en'),
+      nameAr: getPublicUniversityName(code, 'ar'),
+    };
   });
 
   return (

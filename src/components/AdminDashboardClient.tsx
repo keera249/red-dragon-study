@@ -32,12 +32,162 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Copy,
+  Hash,
   Key,
   Lock,
   Menu,
+  Search,
   X,
 } from 'lucide-react';
-import { AuthenticatedActor } from '@/lib/rbac';
+import { ALL_PERMISSIONS, AuthenticatedActor, DEFAULT_ROLE_PERMISSIONS } from '@/lib/rbac';
+import { generateUniversityCode, matchesUniversityCodeOrName } from '@/lib/university-code';
+
+const PERMISSION_ARABIC_META: Record<
+  string,
+  { groupAr: string; labelAr: string; descAr: string }
+> = {
+  'universities:read': {
+    groupAr: 'الجامعات والأكاديميات',
+    labelAr: 'استعراض دليل الجامعات',
+    descAr: 'مشاهدة قائمة الجامعات وتفاصيلها وأكوادها داخل لوحة الإدارة',
+  },
+  'universities:write': {
+    groupAr: 'الجامعات والأكاديميات',
+    labelAr: 'إضافة وتعديل الجامعات',
+    descAr: 'إدخال جامعات جديدة وتعديل بيانات الجامعات الحالية',
+  },
+  'universities:publish': {
+    groupAr: 'الجامعات والأكاديميات',
+    labelAr: 'نشر وإخفاء الجامعات',
+    descAr: 'تغيير حالة الجامعة بين منشور (PUBLISHED) ومسودة (DRAFT)',
+  },
+  'universities:delete': {
+    groupAr: 'الجامعات والأكاديميات',
+    labelAr: 'حذف الجامعات نهائياً',
+    descAr: 'صلاحية حساسة لحذف سجلات الجامعات من قاعدة البيانات',
+  },
+  'programs:read': {
+    groupAr: 'البرامج والرسوم الدراسية',
+    labelAr: 'استعراض التخصصات والرسوم',
+    descAr: 'مشاهدة برامج البكالوريوس والماجستير والدكتوراه والرسوم',
+  },
+  'programs:write': {
+    groupAr: 'البرامج والرسوم الدراسية',
+    labelAr: 'إضافة وتعديل التخصصات والرسوم',
+    descAr: 'إدخال وتحديث البرامج الأكاديمية والرسوم الدراسية وتكاليف السكن',
+  },
+  'scholarships:read': {
+    groupAr: 'المنح الدراسية والمواعيد',
+    labelAr: 'استعراض المنح الدراسية',
+    descAr: 'مشاهدة برامج المنح الكاملة والجزئية المسجلة',
+  },
+  'scholarships:write': {
+    groupAr: 'المنح الدراسية والمواعيد',
+    labelAr: 'إضافة وتعديل المنح الدراسية',
+    descAr: 'إنشاء منح جديدة وتحديد مزاياها وربطها بالجامعات',
+  },
+  'scholarships:delete': {
+    groupAr: 'المنح الدراسية والمواعيد',
+    labelAr: 'حذف المنح الدراسية',
+    descAr: 'حذف سجلات المنح الدراسية من النظام',
+  },
+  'deadlines:read': {
+    groupAr: 'المنح الدراسية والمواعيد',
+    labelAr: 'استعراض مواعيد التقديم',
+    descAr: 'مشاهدة تواريخ فتح وإغلاق باب القبول',
+  },
+  'deadlines:write': {
+    groupAr: 'المنح الدراسية والمواعيد',
+    labelAr: 'إدارة مواعيد التقديم',
+    descAr: 'إضافة وتعديل تواريخ انتهاء التقديم للجامعات',
+  },
+  'requirements:read': {
+    groupAr: 'المتطلبات والوسائط والمحتوى',
+    labelAr: 'استعراض متطلبات القبول',
+    descAr: 'مشاهدة قائمة المستندات والشروط العامة والخاصة',
+  },
+  'requirements:write': {
+    groupAr: 'المتطلبات والوسائط والمحتوى',
+    labelAr: 'تعديل متطلبات القبول',
+    descAr: 'إضافة وتعديل المستندات المطلوبة واستثناءات الجامعات',
+  },
+  'media:read': {
+    groupAr: 'المتطلبات والوسائط والمحتوى',
+    labelAr: 'استعراض مكتبة الصور',
+    descAr: 'مشاهدة معارض صور الحرم الجامعي والسكن الطلابي',
+  },
+  'media:write': {
+    groupAr: 'المتطلبات والوسائط والمحتوى',
+    labelAr: 'رفع الصور وإدارة المعارض',
+    descAr: 'رفع صور جديدة من الجهاز وإنشاء معارض الصور',
+  },
+  'content:read': {
+    groupAr: 'المتطلبات والوسائط والمحتوى',
+    labelAr: 'استعراض محتوى وصفحات الموقع',
+    descAr: 'مشاهدة أقسام الصفحة الرئيسية والأسئلة الشائعة',
+  },
+  'content:write': {
+    groupAr: 'المتطلبات والوسائط والمحتوى',
+    labelAr: 'تعديل محتوى وصفحات الموقع',
+    descAr: 'تحرير النصوص، الأسئلة الشائعة، وصفحات الموقع الثابتة',
+  },
+  'verification:read': {
+    groupAr: 'المتطلبات والوسائط والمحتوى',
+    labelAr: 'استعراض سجلات المراجعة',
+    descAr: 'مشاهدة حالة مراجعة وتدقيق البيانات',
+  },
+  'verification:write': {
+    groupAr: 'المتطلبات والوسائط والمحتوى',
+    labelAr: 'تحديث سجلات المراجعة',
+    descAr: 'اعتماد وتحديث حالة تدقيق البيانات الأكاديمية',
+  },
+  'inquiries:read_assigned': {
+    groupAr: 'طلبات واستفسارات الطلاب',
+    labelAr: 'مشاهدة الطلبات المعينة للموظف فقط',
+    descAr: 'الاطلاع على استفسارات الطلاب المسندة لهذا الموظف تحديداً',
+  },
+  'inquiries:read_all': {
+    groupAr: 'طلبات واستفسارات الطلاب',
+    labelAr: 'مشاهدة جميع طلبات الطلاب في الموقع',
+    descAr: 'الاطلاع الشامل على كافة استفسارات الطلاب بدون استثناء',
+  },
+  'inquiries:write': {
+    groupAr: 'طلبات واستفسارات الطلاب',
+    labelAr: 'تحديث حالة الطلبات والملاحظات',
+    descAr: 'تغيير حالة طلب الطالب وكتابة ملاحظات المتابعة',
+  },
+  'inquiries:assign': {
+    groupAr: 'طلبات واستفسارات الطلاب',
+    labelAr: 'توزيع وإسناد الطلبات للموظفين',
+    descAr: 'تعيين طلبات الطلاب لموظفي القبول لمتابعتها',
+  },
+  'inquiries:export': {
+    groupAr: 'طلبات واستفسارات الطلاب',
+    labelAr: 'تصدير بيانات الطلاب (CSV / Excel)',
+    descAr: 'تحميل ملف ببيانات وأرقام التواصل الخاصة بالطلاب',
+  },
+  'contact:manage': {
+    groupAr: 'إدارة النظام والموظفين والواتساب',
+    labelAr: 'إدارة أرقام وقوالب الواتساب',
+    descAr: 'تعديل رقم الواتساب الرسمي ورسائل التواصل التلقائية',
+  },
+  'employees:manage': {
+    groupAr: 'إدارة النظام والموظفين والواتساب',
+    labelAr: 'إدارة حسابات الموظفين والصلاحيات',
+    descAr: 'إضافة موظفين وتعديل صلاحياتهم وإلغاء جلساتهم',
+  },
+  'settings:manage': {
+    groupAr: 'إدارة النظام والموظفين والواتساب',
+    labelAr: 'إدارة إعدادات النظام والنسخ الاحتياطي',
+    descAr: 'تعديل الإعدادات العامة للموقع وتحميل النسخ الاحتياطية',
+  },
+  'audit:read': {
+    groupAr: 'إدارة النظام والموظفين والواتساب',
+    labelAr: 'الاطلاع على سجل التدقيق الأمني (Audit)',
+    descAr: 'مراقبة جميع العمليات والتعديلات التي قام بها الموظفون',
+  },
+};
 
 type TabKey =
   | 'overview'
@@ -459,9 +609,17 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
     password: '',
     roleCode: 'INQUIRY_OFFICER',
   });
+  const [customEmpPerms, setCustomEmpPerms] = useState<string[]>([
+    ...DEFAULT_ROLE_PERMISSIONS.INQUIRY_OFFICER,
+  ]);
+  const [editingEmpPerms, setEditingEmpPerms] = useState<Record<string, string[]>>({});
   const [expandedEmpId, setExpandedEmpId] = useState<string | null>(null);
-  const [activeRoleGuideTab, setActiveRoleGuideTab] = useState<'ADMINISTRATOR' | 'CONTENT_EDITOR' | 'INQUIRY_OFFICER'>('ADMINISTRATOR');
+  const [activeRoleGuideTab, setActiveRoleGuideTab] = useState<
+    'ADMINISTRATOR' | 'CONTENT_EDITOR' | 'INQUIRY_OFFICER' | 'CUSTOM'
+  >('ADMINISTRATOR');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [uniSearchQuery, setUniSearchQuery] = useState('');
+  const [inspectedUniId, setInspectedUniId] = useState<string | null>(null);
 
   const [newPage, setNewPage] = useState({
     slug: '',
@@ -1173,14 +1331,21 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                         />
                       </div>
 
-                      <div>
-                        <label className="block font-bold text-slate-700 mb-1">رابط الموقع الرسمي للجامعة</label>
-                        <input
-                          placeholder="https://..."
-                          value={newUni.officialWebsite}
-                          onChange={(e) => setNewUni({ ...newUni, officialWebsite: e.target.value })}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
-                        />
+                      <div className="rounded-xl border-2 border-amber-300 bg-amber-50/70 p-3 flex flex-col justify-between">
+                        <label className="block font-extrabold text-amber-950 mb-1 flex items-center gap-1.5">
+                          <Hash className="h-3.5 w-3.5 text-amber-700" />
+                          <span>كود الجامعة التلقائي (يظهر للطلاب بدلاً من الاسم)</span>
+                        </label>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-sm font-black text-brand-800 bg-white border border-amber-300 px-3 py-1 rounded-lg">
+                            {newUni.nameEn.trim()
+                              ? generateUniversityCode(newUni.nameEn)
+                              : 'سيتم توليده تلقائياً عند كتابة الاسم'}
+                          </span>
+                          <span className="text-[10px] font-bold text-amber-900">
+                            🔒 اسم الجامعة وموقعها الرسمي مخفيان عن الطلاب
+                          </span>
+                        </div>
                       </div>
                       <ImageUploadField
                         label="شعار الجامعة (University Logo)"
@@ -1798,13 +1963,195 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                 </form>
               )}
 
+              {/* UNIFIED SEARCH BOX (BY CODE OR UNIVERSITY NAME) */}
+              <div className="rounded-3xl border-2 border-brand-200 bg-white p-5 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                      <Search className="h-4 w-4 text-brand-700" />
+                      <span>البحث الموحد عن الجامعات (برقم الكود أو باسم الجامعة)</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      اكتب رقم الكود الذي أرسله الطالب (مثال: <code className="font-mono font-bold text-amber-800">UNI-4821</code> أو فقط الرقم) أو اكتب اسم الجامعة بالعربي أو الإنجليزي لعرض تفاصيلها الكاملة فوراً.
+                    </p>
+                  </div>
+                  {uniSearchQuery.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUniSearchQuery('');
+                        setInspectedUniId(null);
+                      }}
+                      className="rounded-xl bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 self-start"
+                    >
+                      مسح البحث ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <Search className="h-4 w-4 text-slate-400 absolute top-3.5 left-3.5" />
+                  <input
+                    type="text"
+                    value={uniSearchQuery}
+                    onChange={(e) => setUniSearchQuery(e.target.value)}
+                    placeholder="اكتب هنا كود الجامعة (مثال: UNI-1042) أو اسم الجامعة بالعربي / الإنجليزي / الصيني..."
+                    className="w-full rounded-2xl border-2 border-slate-300 bg-slate-50/50 pl-10 pr-4 py-3 text-sm font-bold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:border-brand-700 focus:bg-white focus:outline-none transition"
+                  />
+                </div>
+
+                {/* FULL UNIVERSITY DETAILS CARDS WHEN SEARCHING OR INSPECTING */}
+                {(uniSearchQuery.trim().length > 0 || inspectedUniId) && (
+                  <div className="space-y-4 pt-2 border-t border-slate-100">
+                    {universities
+                      .filter((u) =>
+                        inspectedUniId && !uniSearchQuery.trim()
+                          ? u.id === inspectedUniId
+                          : matchesUniversityCodeOrName(u, uniSearchQuery)
+                      )
+                      .map((u) => {
+                        const uCode = u.universityCode || generateUniversityCode(u);
+                        return (
+                          <div
+                            key={u.id}
+                            className="rounded-2xl border-2 border-amber-300 bg-amber-50/40 p-5 space-y-4 text-xs animate-in fade-in"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-amber-200/80 pb-4">
+                              <div className="space-y-1.5">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 px-3 py-1 text-xs font-mono font-black text-slate-950 shadow-xs">
+                                    <span>كود الجامعة: {uCode}</span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard?.writeText(uCode);
+                                      notify(`تم نسخ كود الجامعة: ${uCode}`);
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-white border border-amber-300 px-2.5 py-1 text-[11px] font-bold text-amber-900 hover:bg-amber-100"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                    <span>نسخ الكود</span>
+                                  </button>
+                                  <span className="rounded-lg bg-emerald-100 border border-emerald-300 px-2.5 py-1 text-[11px] font-bold text-emerald-900">
+                                    الحالة: {u.status}
+                                  </span>
+                                </div>
+                                <h4 className="text-lg font-black text-slate-900 pt-1">
+                                  {u.nameEn}
+                                </h4>
+                                <div className="text-sm font-bold text-brand-800">
+                                  {u.nameAr || '—'} {u.nameZh ? ` • ${u.nameZh}` : ''}
+                                </div>
+                                <div className="text-xs text-slate-600 font-semibold">
+                                  📍 الموقع: {[u.city, u.province, u.country].filter(Boolean).join(', ')}{' '}
+                                  {u.universityType ? ` • التصنيف: ${u.universityType}` : ''}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditingUniversity(u)}
+                                  className="rounded-xl bg-brand-700 hover:bg-brand-800 px-4 py-2 text-xs font-bold text-white shadow-xs transition"
+                                >
+                                  ✏️ تعديل بيانات الجامعة
+                                </button>
+                                <Link
+                                  href={`/universities/${uCode}?preview=true`}
+                                  target="_blank"
+                                  className="rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                                >
+                                  معاينة صفحة الطالب ↗
+                                </Link>
+                                {inspectedUniId === u.id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setInspectedUniId(null)}
+                                    className="rounded-xl bg-slate-200 px-3 py-2 text-xs font-bold text-slate-700"
+                                  >
+                                    إخفاء التفاصيل
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {(u.shortDescriptionAr || u.shortDescriptionEn) && (
+                              <div className="rounded-xl bg-white p-3.5 border border-amber-200 space-y-1">
+                                <div className="font-extrabold text-slate-800">النبذة التعريفية للجامعة:</div>
+                                {u.shortDescriptionAr && <p className="text-slate-700 leading-relaxed" dir="rtl">{u.shortDescriptionAr}</p>}
+                                {u.shortDescriptionEn && <p className="text-slate-500 leading-relaxed">{u.shortDescriptionEn}</p>}
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Programs List */}
+                              <div className="rounded-xl bg-white p-3.5 border border-slate-200 space-y-2">
+                                <div className="font-extrabold text-slate-900 border-b border-slate-100 pb-1.5">
+                                  🎓 البرامج والتخصصات المسجلة ({u.programs?.length || 0})
+                                </div>
+                                {u.programs && u.programs.length > 0 ? (
+                                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                                    {u.programs.map((p: any) => (
+                                      <div key={p.id} className="rounded-lg bg-slate-50 p-2.5 border border-slate-100 flex items-center justify-between gap-2">
+                                        <div>
+                                          <div className="font-bold text-slate-900">{p.nameAr || p.nameEn}</div>
+                                          <div className="text-[11px] text-slate-500">
+                                            {p.nameEn} • {p.degreeLevel} • {p.languageOfInstruction}
+                                          </div>
+                                        </div>
+                                        {typeof p.tuitionAmount === 'number' && (
+                                          <span className="font-extrabold text-brand-700 shrink-0">
+                                            {p.tuitionAmount.toLocaleString()} {p.tuitionCurrency}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-slate-400">لا توجد تخصصات مسجلة بعد.</p>
+                                )}
+                              </div>
+
+                              {/* Fees & Scholarships */}
+                              <div className="rounded-xl bg-white p-3.5 border border-slate-200 space-y-2">
+                                <div className="font-extrabold text-slate-900 border-b border-slate-100 pb-1.5">
+                                  💰 الرسوم الإضافية والمنح ({u.fees?.length || 0} رسوم • {u.scholarshipLinks?.length || 0} منح)
+                                </div>
+                                {u.fees && u.fees.length > 0 ? (
+                                  <div className="space-y-1.5">
+                                    {u.fees.map((f: any) => (
+                                      <div key={f.id} className="flex items-center justify-between text-[11px] bg-slate-50 px-2.5 py-1.5 rounded-lg">
+                                        <span className="font-semibold text-slate-800">{f.titleAr || f.titleEn} ({f.category})</span>
+                                        <span className="font-bold text-brand-700">{Number(f.amount).toLocaleString()} {f.currency}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-slate-400">لا توجد رسوم سكن مسجلة بعد.</p>
+                                )}
+                                {u.internalNotes && (
+                                  <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] text-amber-900 bg-amber-50 p-2 rounded-lg">
+                                    <strong>ملاحظات إدارية خاصة:</strong> {u.internalNotes}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+
               {/* UNIVERSITIES DIRECTORY TABLE */}
               <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[640px] text-left text-xs border-collapse">
+                  <table className="w-full min-w-[720px] text-left text-xs border-collapse">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase">
                     <tr>
-                      <th className="p-3.5">University</th>
+                      <th className="p-3.5">كود الجامعة (Code)</th>
+                      <th className="p-3.5">اسم الجامعة الحقيقي (للأدمن فقط)</th>
                       <th className="p-3.5">City / Province</th>
                       <th className="p-3.5">Programs</th>
                       <th className="p-3.5">Status</th>
@@ -1812,96 +2159,126 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {universities.map((u) => (
-                      <tr key={u.id}>
-                        <td className="p-3.5">
-                          <div className="font-bold text-slate-900">{u.nameEn}</div>
-                          <div className="text-slate-500">
-                            {u.nameAr} {u.nameZh ? `• ${u.nameZh}` : ''}
-                          </div>
-                        </td>
-                        <td className="p-3.5">{[u.city, u.province].filter(Boolean).join(', ')}</td>
-                        <td className="p-3.5 font-semibold">{u.programs?.length || 0}</td>
-                        <td className="p-3.5">
-                          <select
-                            value={u.status}
-                            onChange={async (e) => {
-                              const res = await fetch(`/api/admin/universities/${u.id}`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ status: e.target.value }),
-                              });
-                              if (res.ok) {
-                                notify(`Updated ${u.nameEn} status to ${e.target.value}`);
-                                loadTabData('universities');
-                              }
-                            }}
-                            className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold"
-                          >
-                            <option value="DRAFT">DRAFT</option>
-                            <option value="PUBLISHED">PUBLISHED</option>
-                            <option value="UNPUBLISHED">UNPUBLISHED</option>
-                            <option value="DISABLED">DISABLED</option>
-                            <option value="ARCHIVED">ARCHIVED</option>
-                          </select>
-                        </td>
-                        <td className="p-3.5 flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => startEditingUniversity(u)}
-                            className="rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1 font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-xs"
-                          >
-                            تعديل
-                          </button>
-                          <Link
-                            href={`/universities/${u.slug}?preview=true`}
-                            target="_blank"
-                            className="rounded-lg border border-slate-200 px-2.5 py-1 font-semibold text-brand-700 hover:bg-slate-50"
-                          >
-                            Preview
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const res = await fetch('/api/admin/universities', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  action: 'DUPLICATE',
-                                  sourceUniversityId: u.id,
-                                }),
-                              });
-                              if (res.ok) {
-                                notify('University duplicated as Draft!');
-                                loadTabData('universities');
-                              }
-                            }}
-                            className="rounded-lg border border-slate-200 px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50"
-                          >
-                            Duplicate
-                          </button>
-                          {can('universities:delete') && (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                if (!confirm(`Confirm deleting ${u.nameEn}?`)) return;
-                                const res = await fetch(
-                                  `/api/admin/universities/${u.id}?confirm=true`,
-                                  { method: 'DELETE' }
-                                );
-                                if (res.ok) {
-                                  notify('University deleted');
-                                  loadTabData('universities');
+                    {universities
+                      .filter((u) => matchesUniversityCodeOrName(u, uniSearchQuery))
+                      .map((u) => {
+                        const uCode = u.universityCode || generateUniversityCode(u);
+                        return (
+                          <tr key={u.id} className="hover:bg-slate-50/70">
+                            <td className="p-3.5">
+                              <div className="inline-flex items-center gap-1.5 rounded-lg bg-amber-100 border border-amber-300 px-2.5 py-1 font-mono font-black text-amber-950">
+                                <span>{uCode}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard?.writeText(uCode);
+                                    notify(`تم نسخ كود الجامعة: ${uCode}`);
+                                  }}
+                                  className="text-amber-700 hover:text-amber-950"
+                                  title="نسخ كود الجامعة"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="p-3.5">
+                              <div className="font-bold text-slate-900">{u.nameEn}</div>
+                              <div className="text-slate-500">
+                                {u.nameAr} {u.nameZh ? `• ${u.nameZh}` : ''}
+                              </div>
+                            </td>
+                            <td className="p-3.5">{[u.city, u.province].filter(Boolean).join(', ')}</td>
+                            <td className="p-3.5 font-semibold">{u.programs?.length || 0}</td>
+                            <td className="p-3.5">
+                              <select
+                                value={u.status}
+                                onChange={async (e) => {
+                                  const res = await fetch(`/api/admin/universities/${u.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ status: e.target.value }),
+                                  });
+                                  if (res.ok) {
+                                    notify(`Updated ${u.nameEn} status to ${e.target.value}`);
+                                    loadTabData('universities');
+                                  }
+                                }}
+                                className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold"
+                              >
+                                <option value="DRAFT">DRAFT</option>
+                                <option value="PUBLISHED">PUBLISHED</option>
+                                <option value="UNPUBLISHED">UNPUBLISHED</option>
+                                <option value="DISABLED">DISABLED</option>
+                                <option value="ARCHIVED">ARCHIVED</option>
+                              </select>
+                            </td>
+                            <td className="p-3.5 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setInspectedUniId(inspectedUniId === u.id ? null : u.id)
                                 }
-                              }}
-                              className="rounded-lg border border-red-200 px-2 py-1 text-red-700 hover:bg-red-50"
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                                className="rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1 font-bold text-amber-900 hover:bg-amber-100 transition shadow-xs"
+                              >
+                                {inspectedUniId === u.id ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => startEditingUniversity(u)}
+                                className="rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1 font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-xs"
+                              >
+                                تعديل
+                              </button>
+                              <Link
+                                href={`/universities/${uCode}?preview=true`}
+                                target="_blank"
+                                className="rounded-lg border border-slate-200 px-2.5 py-1 font-semibold text-brand-700 hover:bg-slate-50"
+                              >
+                                Preview
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const res = await fetch('/api/admin/universities', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      action: 'DUPLICATE',
+                                      sourceUniversityId: u.id,
+                                    }),
+                                  });
+                                  if (res.ok) {
+                                    notify('University duplicated as Draft!');
+                                    loadTabData('universities');
+                                  }
+                                }}
+                                className="rounded-lg border border-slate-200 px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50"
+                              >
+                                Duplicate
+                              </button>
+                              {can('universities:delete') && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (!confirm(`Confirm deleting ${u.nameEn}?`)) return;
+                                    const res = await fetch(
+                                      `/api/admin/universities/${u.id}?confirm=true`,
+                                      { method: 'DELETE' }
+                                    );
+                                    if (res.ok) {
+                                      notify('University deleted');
+                                      loadTabData('universities');
+                                    }
+                                  }}
+                                  className="rounded-lg border border-red-200 px-2 py-1 text-red-700 hover:bg-red-50"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -2668,8 +3045,15 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           Country: {inq.countryOfResidence || '—'}
                         </div>
                         {inq.university && (
-                          <div className="text-slate-700 font-semibold mt-1">
-                            Target University: {inq.university.nameEn}
+                          <div className="text-slate-700 font-semibold mt-1 flex items-center gap-2">
+                            <span>Target University:</span>
+                            <span className="rounded bg-amber-100 border border-amber-300 px-2 py-0.5 font-mono font-black text-amber-950">
+                              {generateUniversityCode(inq.university)}
+                            </span>
+                            <span>
+                              {inq.university.nameEn}{' '}
+                              {inq.university.nameAr ? `(${inq.university.nameAr})` : ''}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -3077,7 +3461,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                   </div>
 
                   {/* Role Selector Tabs */}
-                  <div className="inline-flex rounded-xl bg-slate-100 p-1 gap-1 text-xs font-bold">
+                  <div className="inline-flex flex-wrap rounded-xl bg-slate-100 p-1 gap-1 text-xs font-bold">
                     <button
                       type="button"
                       onClick={() => setActiveRoleGuideTab('ADMINISTRATOR')}
@@ -3110,6 +3494,17 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                       }`}
                     >
                       🎧 مسؤول الاستفسارات (Inquiries)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveRoleGuideTab('CUSTOM')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        activeRoleGuideTab === 'CUSTOM'
+                          ? 'bg-white text-purple-900 shadow-xs font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      🛠️ موظف مخصص (Custom)
                     </button>
                   </div>
                 </div>
@@ -3265,16 +3660,71 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                     </div>
                   </div>
                 )}
+                {activeRoleGuideTab === 'CUSTOM' && (
+                  <div className="rounded-2xl border-2 border-purple-200 bg-purple-50/40 p-5 space-y-4 animate-in fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">🛠️</span>
+                          <h3 className="text-base font-black text-purple-950">
+                            موظف بصلاحيات مخصصة حسب اختيارك (Custom Permissions Employee)
+                          </h3>
+                        </div>
+                        <p className="text-xs text-purple-900 mt-1 leading-relaxed">
+                          يتيح لك هذا الخيار تفصيل صلاحيات الموظف بدقة كاملة؛ حيث تختار بنفسك أي الأقسام والعمليات التي يُسمح له بالوصول إليها وتمنع الباقي.
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-600 text-white px-3 py-1 text-xs font-black shadow-xs shrink-0 self-start">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>تحكم يدوي كامل بالصلاحيات</span>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-purple-200/70 text-xs">
+                      <div className="space-y-2">
+                        <h4 className="font-extrabold text-purple-900 flex items-center gap-1.5">
+                          <Check className="h-4 w-4 text-purple-600" />
+                          <span>أمثلة على التخصيص المرن:</span>
+                        </h4>
+                        <ul className="space-y-1.5 text-slate-700 list-disc list-inside leading-relaxed ps-1">
+                          <li><strong>مشرف استفسارات عام:</strong> منحه صلاحية رؤية جميع طلبات الطلاب (`inquiries:read_all`) وتوزيعها دون السماح له بتعديل الجامعات.</li>
+                          <li><strong>مدخل بيانات جامعات فقط:</strong> منحه صلاحية إضافة الجامعات والتخصصات فقط دون الوصول للمقالات أو الصور أو إعدادات الموقع.</li>
+                          <li><strong>مسؤول تسويق وواتساب:</strong> منحه صلاحية إدارة أرقام وقوالب الواتساب وتصدير بيانات الطلاب فقط.</li>
+                        </ul>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-extrabold text-slate-700 flex items-center gap-1.5">
+                          <Key className="h-4 w-4 text-purple-700" />
+                          <span>كيفية الاستخدام:</span>
+                        </h4>
+                        <div className="rounded-xl bg-white p-3 border border-purple-200 text-slate-700 space-y-1.5">
+                          <p className="text-[11px] leading-relaxed">
+                            عند إضافة موظف جديد بالأسفل، اختر <strong>&quot;🛠️ موظف بصلاحيات مخصصة (Custom)&quot;</strong> من قائمة الدور الوظيفي، وستظهر لك لوحة اختيار الصلاحيات لتحديد ما يناسبك بدقة، كما يمكنك تعديل صلاحيات أي موظف حالي في أي وقت.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Create Employee Account Form */}
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  if (newEmployee.roleCode === 'CUSTOM' && customEmpPerms.length === 0) {
+                    notify('يرجى اختيار صلاحية واحدة على الأقل للموظف المخصص');
+                    return;
+                  }
                   const res = await fetch('/api/admin/employees', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newEmployee),
+                    body: JSON.stringify({
+                      ...newEmployee,
+                      customPermissions:
+                        newEmployee.roleCode === 'CUSTOM' ? customEmpPerms : undefined,
+                    }),
                   });
                   if (res.ok) {
                     notify('تم إنشاء حساب الموظف وتعيين الصلاحيات بنجاح!');
@@ -3295,9 +3745,9 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                   <UserCheck className="h-5 w-5 text-brand-700" />
                   <div>
-                    <h2 className="text-sm font-bold text-slate-900">إضافة موظف جديد وتحديد دوره الوظيفي</h2>
+                    <h2 className="text-sm font-bold text-slate-900">إضافة موظف جديد وتحديد دوره الوظيفي أو تخصيص صلاحياته</h2>
                     <p className="text-[11px] text-slate-500">
-                      قم بإنشاء حساب جديد وتعيين كلمة مرور أولية مع اختيار الدور المناسب للموظف.
+                      قم بإنشاء حساب جديد وتعيين كلمة مرور أولية مع اختيار دور جاهز أو تخصيص الصلاحيات يدوياً (Custom).
                     </p>
                   </div>
                 </div>
@@ -3348,6 +3798,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                       <option value="INQUIRY_OFFICER">🎧 مسؤول متابعة استفسارات الطلاب (Inquiry Officer)</option>
                       <option value="CONTENT_EDITOR">✍️ محرر المحتوى الأكاديمي (Content Editor)</option>
                       <option value="ADMINISTRATOR">👑 مدير النظام العام (Super Admin)</option>
+                      <option value="CUSTOM">🛠️ موظف بصلاحيات مخصصة (Custom - اختيار الصلاحيات يدوياً)</option>
                     </select>
                   </div>
                 </div>
@@ -3364,15 +3815,127 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                         {newEmployee.roleCode === 'ADMINISTRATOR' && 'مدير النظام الكامل (كامل الصلاحيات 28/28)'}
                         {newEmployee.roleCode === 'CONTENT_EDITOR' && 'محرر المحتوى الأكاديمي (إدارة الجامعات والرسوم والمحتوى بدون حذف)'}
                         {newEmployee.roleCode === 'INQUIRY_OFFICER' && 'مسؤول الاستفسارات (متابعة طلبات الطلاب واستشارات القبول)'}
+                        {newEmployee.roleCode === 'CUSTOM' && `موظف بصلاحيات مخصصة (${customEmpPerms.length} صلاحية مختارة من 28)`}
                       </span>
                     </span>
                     <p className="text-[11px] text-slate-500 mt-0.5">
                       {newEmployee.roleCode === 'ADMINISTRATOR' && 'سيمتلك هذا الحساب صلاحيات مطلقة لإدارة كامل الموقع والموظفين والبيانات.'}
                       {newEmployee.roleCode === 'CONTENT_EDITOR' && 'سيتمكن هذا الموظف من تحديث معلومات الجامعات والبرامج والرسوم والمقالات والصور.'}
                       {newEmployee.roleCode === 'INQUIRY_OFFICER' && 'سيتمكن هذا الموظف من استقبال استفسارات الطلاب والتواصل معهم وتحديث حالة طلباتهم.'}
+                      {newEmployee.roleCode === 'CUSTOM' && 'اختر بالأسفل الصلاحيات الدقيقة التي ترغب في منحها لهذا الموظف.'}
                     </p>
                   </div>
                 </div>
+
+                {/* Interactive Custom Permissions Matrix when CUSTOM is selected */}
+                {newEmployee.roleCode === 'CUSTOM' && (
+                  <div className="rounded-2xl border-2 border-purple-300 bg-purple-50/30 p-5 space-y-4 animate-in fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-200 pb-3">
+                      <div>
+                        <h3 className="text-sm font-black text-purple-950 flex items-center gap-2">
+                          <span>🛠️</span>
+                          <span>تخصيص الصلاحيات اليدوي للموظف الجديد ({customEmpPerms.length} من 28 محددة)</span>
+                        </h3>
+                        <p className="text-[11px] text-purple-800 mt-0.5">
+                          ضع علامة (✓) أمام كل صلاحية تريد منحها لهذا الموظف، أو استخدم الأزرار السريعة بالجانب لتعبئة قالب مبدئي ثم التعديل عليه.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCustomEmpPerms(ALL_PERMISSIONS.map((p) => p.code))}
+                          className="rounded-lg bg-purple-700 text-white px-2.5 py-1 text-[11px] font-bold hover:bg-purple-800"
+                        >
+                          تحديد الكل (28)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCustomEmpPerms([...DEFAULT_ROLE_PERMISSIONS.CONTENT_EDITOR])}
+                          className="rounded-lg bg-white border border-purple-300 text-purple-900 px-2.5 py-1 text-[11px] font-bold hover:bg-purple-100"
+                        >
+                          قالب المحرر (16)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCustomEmpPerms([...DEFAULT_ROLE_PERMISSIONS.INQUIRY_OFFICER])}
+                          className="rounded-lg bg-white border border-purple-300 text-purple-900 px-2.5 py-1 text-[11px] font-bold hover:bg-purple-100"
+                        >
+                          قالب الاستفسارات (7)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCustomEmpPerms([])}
+                          className="rounded-lg bg-white border border-red-200 text-red-700 px-2.5 py-1 text-[11px] font-bold hover:bg-red-50"
+                        >
+                          إلغاء الكل
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Array.from(
+                        new Set(Object.values(PERMISSION_ARABIC_META).map((m) => m.groupAr))
+                      ).map((groupName) => {
+                        const groupPerms = ALL_PERMISSIONS.filter(
+                          (p) => PERMISSION_ARABIC_META[p.code]?.groupAr === groupName
+                        );
+                        return (
+                          <div
+                            key={groupName}
+                            className="rounded-xl bg-white border border-purple-200 p-3.5 space-y-2.5 shadow-2xs"
+                          >
+                            <div className="font-extrabold text-xs text-purple-950 border-b border-slate-100 pb-1.5 flex items-center justify-between">
+                              <span>{groupName}</span>
+                              <span className="text-[10px] text-slate-400">
+                                {groupPerms.filter((gp) => customEmpPerms.includes(gp.code)).length}/
+                                {groupPerms.length}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              {groupPerms.map((perm) => {
+                                const meta = PERMISSION_ARABIC_META[perm.code];
+                                const checked = customEmpPerms.includes(perm.code);
+                                return (
+                                  <label
+                                    key={perm.code}
+                                    className={`flex items-start gap-2.5 p-2 rounded-lg border cursor-pointer transition ${
+                                      checked
+                                        ? 'bg-purple-50/70 border-purple-300'
+                                        : 'bg-slate-50/40 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setCustomEmpPerms([...customEmpPerms, perm.code]);
+                                        } else {
+                                          setCustomEmpPerms(
+                                            customEmpPerms.filter((c) => c !== perm.code)
+                                          );
+                                        }
+                                      }}
+                                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-purple-700 focus:ring-purple-600"
+                                    />
+                                    <div className="flex-1">
+                                      <div className="font-bold text-slate-900 text-[11px]">
+                                        {meta?.labelAr || perm.description}
+                                      </div>
+                                      <div className="text-[10px] text-slate-500 leading-snug">
+                                        {meta?.descAr || perm.description}
+                                      </div>
+                                    </div>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="pt-2">
                   <button
@@ -3406,6 +3969,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                     const isSuperAdmin = roleCodes.includes('ADMINISTRATOR');
                     const isEditor = roleCodes.includes('CONTENT_EDITOR');
                     const isInquiry = roleCodes.includes('INQUIRY_OFFICER');
+                    const isCustomRole = roleCodes.some((c) => c.startsWith('CUSTOM_'));
 
                     // Aggregate all granted permissions for this employee
                     const userPermCodes = new Set<string>();
@@ -3415,6 +3979,17 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                         userPermCodes.add(rp.permission.code);
                       });
                     });
+
+                    const allPermCodes = ALL_PERMISSIONS.map((p) => p.code);
+                    const draftPerms = editingEmpPerms[emp.id] ?? (isSuperAdmin ? allPermCodes : Array.from(userPermCodes));
+
+                    const toggleDraftPerm = (permCode: string) => {
+                      const current = editingEmpPerms[emp.id] ?? (isSuperAdmin ? allPermCodes : Array.from(userPermCodes));
+                      const next = current.includes(permCode)
+                        ? current.filter((p) => p !== permCode)
+                        : [...current, permCode];
+                      setEditingEmpPerms((prev) => ({ ...prev, [emp.id]: next }));
+                    };
 
                     return (
                       <div key={emp.id} className="py-4 space-y-3">
@@ -3453,6 +4028,11 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                                 <span>🎧 مسؤول الاستفسارات (Inquiries)</span>
                               </span>
                             )}
+                            {isCustomRole && (
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-purple-50 border border-purple-300 px-2.5 py-1 text-xs font-black text-purple-900">
+                                <span>🛠️ موظف مخصص (Custom — {userPermCodes.size} صلاحية)</span>
+                              </span>
+                            )}
 
                             {/* Toggle Detailed Permissions Inspector */}
                             <button
@@ -3460,7 +4040,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                               onClick={() => setExpandedEmpId(isExpanded ? null : emp.id)}
                               className="inline-flex items-center gap-1 rounded-xl border border-slate-200 hover:border-brand-400 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-brand-800 transition"
                             >
-                              <span>{isExpanded ? 'إخفاء الصلاحيات' : 'عرض الصلاحيات التفصيلية'}</span>
+                              <span>{isExpanded ? 'إخفاء الصلاحيات' : 'عرض وتعديل الصلاحيات'}</span>
                               {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                             </button>
 
@@ -3486,83 +4066,88 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           </div>
                         </div>
 
-                        {/* Expandable Permissions Breakdown */}
+                        {/* Expandable Permissions Breakdown & Custom Editor */}
                         {isExpanded && (
-                          <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-3 text-xs animate-in fade-in">
-                            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-4 text-xs animate-in fade-in">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
                               <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
                                 <Key className="h-4 w-4 text-brand-700" />
-                                <span>الصلاحيات الممنوحة لـ {emp.name}:</span>
+                                <span>تخصيص ومراجعة صلاحيات الموظف ({emp.name}):</span>
                               </span>
-                              <span className="text-[11px] font-bold text-brand-800 bg-brand-50 px-2 py-0.5 rounded-md">
-                                {isSuperAdmin ? 'كامل الصلاحيات (28/28)' : `${userPermCodes.size} صلاحية مفعلة`}
+                              <span className="text-[11px] font-bold text-purple-900 bg-purple-100 px-2.5 py-0.5 rounded-md">
+                                {draftPerms.length} / {ALL_PERMISSIONS.length} صلاحية محددة
                               </span>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 pt-1">
-                              {/* Group: Universities */}
-                              <div className="rounded-xl bg-white p-2.5 border border-slate-200 space-y-1">
-                                <span className="font-bold text-[11px] text-slate-500 uppercase block">الجامعات والبرامج</span>
-                                <div className="space-y-1 text-[11px]">
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('universities:read') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('universities:read') ? '✓' : '✗'} استعراض الجامعات</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {Array.from(new Set(Object.values(PERMISSION_ARABIC_META).map((m) => m.groupAr))).map((groupName) => {
+                                const groupPerms = ALL_PERMISSIONS.filter(
+                                  (p) => PERMISSION_ARABIC_META[p.code]?.groupAr === groupName
+                                );
+                                return (
+                                  <div key={groupName} className="rounded-xl bg-white p-3 border border-slate-200 space-y-2">
+                                    <span className="font-extrabold text-[11px] text-slate-700 block border-b border-slate-100 pb-1">
+                                      {groupName}
+                                    </span>
+                                    <div className="space-y-1.5">
+                                      {groupPerms.map((perm) => {
+                                        const checked = draftPerms.includes(perm.code);
+                                        const meta = PERMISSION_ARABIC_META[perm.code];
+                                        return (
+                                          <label
+                                            key={perm.code}
+                                            className={`flex items-start gap-2 rounded-lg p-1.5 cursor-pointer transition ${
+                                              checked ? 'bg-purple-50/80 text-purple-950 font-bold' : 'text-slate-500 hover:bg-slate-50'
+                                            }`}
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={checked}
+                                              onChange={() => toggleDraftPerm(perm.code)}
+                                              className="mt-0.5 rounded text-purple-700 focus:ring-purple-600"
+                                            />
+                                            <div className="leading-tight">
+                                              <span className="block text-[11px]">{meta?.labelAr || perm.description}</span>
+                                              <span className="block text-[10px] text-slate-400 font-normal">{meta?.descAr || perm.description}</span>
+                                            </div>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('universities:write') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('universities:write') ? '✓' : '✗'} تعديل وإضافة الجامعات</span>
-                                  </div>
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('universities:delete') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('universities:delete') ? '✓' : '✗'} حذف الجامعات</span>
-                                  </div>
-                                </div>
-                              </div>
+                                );
+                              })}
+                            </div>
 
-                              {/* Group: Inquiries */}
-                              <div className="rounded-xl bg-white p-2.5 border border-slate-200 space-y-1">
-                                <span className="font-bold text-[11px] text-slate-500 uppercase block">استفسارات الطلاب</span>
-                                <div className="space-y-1 text-[11px]">
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('inquiries:read_assigned') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('inquiries:read_assigned') ? '✓' : '✗'} متابعة طلبات الطلاب</span>
-                                  </div>
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('inquiries:read_all') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('inquiries:read_all') ? '✓' : '✗'} الاطلاع على كل الطلبات</span>
-                                  </div>
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('inquiries:export') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('inquiries:export') ? '✓' : '✗'} تصدير بيانات الطلاب</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Group: Content & Media */}
-                              <div className="rounded-xl bg-white p-2.5 border border-slate-200 space-y-1">
-                                <span className="font-bold text-[11px] text-slate-500 uppercase block">المحتوى والوسائط</span>
-                                <div className="space-y-1 text-[11px]">
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('media:write') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('media:write') ? '✓' : '✗'} رفع وإدارة الصور</span>
-                                  </div>
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('content:write') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('content:write') ? '✓' : '✗'} تعديل صفحات الموقع</span>
-                                  </div>
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('scholarships:write') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('scholarships:write') ? '✓' : '✗'} تعديل المنح الدراسية</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Group: System & Staff */}
-                              <div className="rounded-xl bg-white p-2.5 border border-slate-200 space-y-1">
-                                <span className="font-bold text-[11px] text-slate-500 uppercase block">النظام والموظفين</span>
-                                <div className="space-y-1 text-[11px]">
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('employees:manage') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('employees:manage') ? '✓' : '✗'} إدارة حسابات الموظفين</span>
-                                  </div>
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('contact:manage') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('contact:manage') ? '✓' : '✗'} إدارة الواتساب والتواصل</span>
-                                  </div>
-                                  <div className={`flex items-center gap-1.5 ${isSuperAdmin || userPermCodes.has('settings:manage') ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
-                                    <span>{isSuperAdmin || userPermCodes.has('settings:manage') ? '✓' : '✗'} إعدادات النظام الحساسة</span>
-                                  </div>
-                                </div>
-                              </div>
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200">
+                              <span className="text-[11px] text-slate-500">
+                                يمكنك تعديل الصلاحيات يدوياً وحفظها لتحويل حساب الموظف إلى صلاحيات مخصصة (Custom) فوراً.
+                              </span>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const res = await fetch('/api/admin/employees', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      action: 'UPDATE_USER_CUSTOM_PERMISSIONS',
+                                      userId: emp.id,
+                                      customPermissions: draftPerms,
+                                    }),
+                                  });
+                                  if (res.ok) {
+                                    notify(`تم تحديث وتخصيص صلاحيات الموظف (${emp.name}) بنجاح (${draftPerms.length} صلاحية)`);
+                                    loadTabData('employees');
+                                  } else {
+                                    const err = await res.json().catch(() => ({}));
+                                    notify(err.error || 'تعذر حفظ الصلاحيات المخصصة');
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 px-4 py-2 text-xs font-extrabold text-white shadow-xs transition"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                <span>حفظ الصلاحيات المخصصة لهذا الموظف</span>
+                              </button>
                             </div>
                           </div>
                         )}

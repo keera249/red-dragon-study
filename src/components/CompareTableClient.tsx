@@ -142,15 +142,17 @@ export function CompareTableClient({
                   <th key={u.id} className="p-4 text-start align-top border-s border-slate-200">
                     <div className="flex items-start justify-between gap-2">
                       <div>
+                        {u.universityCode && (
+                          <span className="inline-block rounded-md bg-amber-100 border border-amber-300 px-2 py-0.5 text-[11px] font-mono font-black text-amber-950 mb-1">
+                            {u.universityCode}
+                          </span>
+                        )}
                         <Link
-                          href={`/universities/${u.slug}`}
+                          href={`/universities/${u.universityCode || u.slug}`}
                           className="text-base font-extrabold text-brand-800 hover:underline block"
                         >
                           {getLocalizedText(lang, u.nameAr, u.nameEn)}
                         </Link>
-                        {u.nameZh && (
-                          <span className="text-xs text-slate-500 block">{u.nameZh}</span>
-                        )}
                       </div>
                       <button
                         type="button"
@@ -358,31 +360,6 @@ export function CompareTableClient({
                         ? getLocalizedText(lang, u.accommodationDescAr, u.accommodationDescEn) ||
                           (lang === 'ar' ? 'متوفر' : 'Available')
                         : naText}
-                    </td>
-                  ))}
-                </tr>
-              )}
-
-              {enabledFields.includes('officialWebsite') && (
-                <tr>
-                  <td className="p-4 font-bold text-slate-700 bg-slate-50/60">
-                    {t.common.officialWebsite}
-                  </td>
-                  {universities.map((u) => (
-                    <td key={u.id} className="p-4 border-s border-slate-100">
-                      {u.officialWebsite ? (
-                        <a
-                          href={u.officialWebsite}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline"
-                        >
-                          <span>{t.common.officialWebsite}</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        naText
-                      )}
                     </td>
                   ))}
                 </tr>

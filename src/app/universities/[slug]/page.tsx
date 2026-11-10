@@ -19,7 +19,7 @@ import {
 import { prisma } from '@/lib/prisma';
 import { getCurrentLocale } from '@/lib/i18n-server';
 import { UI_LABELS } from '@/lib/i18n';
-import { sanitizePublicUniversity } from '@/lib/public-data';
+import { findUniversityBySlugOrCode, sanitizePublicUniversity } from '@/lib/public-data';
 import { getLocalizedText, hasNonEmptyText } from '@/lib/visibility';
 import { getAuthenticatedActor } from '@/lib/auth';
 import { PublicHeader } from '@/components/PublicHeader';
@@ -36,23 +36,26 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const lang = await getCurrentLocale();
-  const uni = await prisma.university.findUnique({ where: { slug } });
-  if (!uni || uni.status !== 'PUBLISHED') {
+  const rawUni = await findUniversityBySlugOrCode(slug);
+  if (!rawUni || rawUni.status !== 'PUBLISHED') {
+    return { title: 'University Not Found' };
+  }
+  const uni = sanitizePublicUniversity(rawUni, 30, false);
+  if (!uni) {
     return { title: 'University Not Found' };
   }
   const title =
     lang === 'ar'
-      ? uni.seoTitleAr || `${uni.nameAr || uni.nameEn} | التنين الأحمر للدراسة`
-      : uni.seoTitleEn || `${uni.nameEn} (${uni.nameZh || 'China'}) | Red Dragon Study`;
+      ? `${uni.nameAr} | التنين الأحمر للدراسة`
+      : `${uni.nameEn} | Red Dragon Study`;
   const description =
     lang === 'ar'
-      ? uni.seoDescriptionAr || uni.shortDescriptionAr || uni.shortDescriptionEn || ''
-      : uni.seoDescriptionEn || uni.shortDescriptionEn || '';
+      ? uni.shortDescriptionAr || uni.shortDescriptionEn || ''
+      : uni.shortDescriptionEn || '';
 
   return {
     title,
     description,
-    alternates: uni.canonicalUrl ? { canonical: uni.canonicalUrl } : undefined,
     robots: uni.noIndex ? { index: false, follow: false } : undefined,
   };
 }
@@ -72,17 +75,14 @@ export default async function UniversityDetailPage({
   const actor = sp?.preview === 'true' ? await getAuthenticatedActor() : null;
   const allowPreview = Boolean(actor);
 
-  let rawUni = await prisma.university.findUnique({
-    where: { slug },
-    include: {
-      programs: true,
-      fees: true,
-      scholarshipLinks: { include: { scholarship: true } },
-      sharedRequirements: { include: { requirement: true, override: true } },
-      specificRequirements: true,
-      galleries: { include: { images: true } },
-      deadlines: true,
-    },
+  let rawUni = await findUniversityBySlugOrCode(slug, {
+    programs: true,
+    fees: true,
+    scholarshipLinks: { include: { scholarship: true } },
+    sharedRequirements: { include: { requirement: true, override: true } },
+    specificRequirements: true,
+    galleries: { include: { images: true } },
+    deadlines: true,
   });
 
   // Section 23: Support redirects when university slugs change
@@ -117,16 +117,15 @@ export default async function UniversityDetailPage({
   const ranking = getLocalizedText(lang, uni.rankingInfoAr, uni.rankingInfoEn);
   const accomDesc = getLocalizedText(lang, uni.accommodationDescAr, uni.accommodationDescEn);
 
-  const pageUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/universities/${uni.slug}`;
+  const pageUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/universities/${uni.universityCode || uni.slug}`;
 
   // Structured data JSON-LD for SEO (Section 23)
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'CollegeOrUniversity',
     name: uni.nameEn,
-    alternateName: uni.nameZh || undefined,
     description: uni.shortDescriptionEn || undefined,
-    url: uni.officialWebsite || pageUrl,
+    url: pageUrl,
     address: uni.city
       ? {
           '@type': 'PostalAddress',
@@ -151,19 +150,29 @@ export default async function UniversityDetailPage({
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="flex items-start gap-5">
               <img
-                src={uni.logoUrl || '/logo.jpeg'}
+                src="/logo.jpeg"
                 alt={uName}
                 className="h-20 w-20 rounded-2xl object-cover border border-slate-200 shadow-sm shrink-0"
               />
-              <div className="space-y-2">
+              <div className="space-y-2.5">
+                <div className="inline-flex flex-wrap items-center gap-2 rounded-xl bg-amber-100 border-2 border-amber-300 px-3.5 py-1.5 shadow-xs">
+                  <span className="text-xs font-extrabold text-amber-950">
+                    {lang === 'ar' ? 'رقم كود الجامعة للتقديم:' : 'University Reference Code:'}
+                  </span>
+                  <span className="font-mono text-base font-black text-brand-800 tracking-wider">
+                    {uni.universityCode}
+                  </span>
+                </div>
+
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900">{uName}</h1>
-                  {hasNonEmptyText(uni.nameZh) && (
-                    <span className="rounded-lg bg-brand-50 px-3 py-1 text-sm font-bold text-brand-800 border border-brand-200">
-                      {uni.nameZh}
-                    </span>
-                  )}
                 </div>
+
+                <p className="text-xs font-semibold text-amber-900 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2 max-w-2xl">
+                  {lang === 'ar'
+                    ? `💡 ملاحظة للطالب: للتقديم أو الاستفسار عن هذه الجامعة، انسخ كود الجامعة (${uni.universityCode}) وتواصل به مباشرة مع إدارة التنين الأحمر عبر زر الواتساب أو نموذج الاستفسار أدناه.`
+                    : `💡 Note: To apply or inquire about this university, quote the University Code (${uni.universityCode}) when contacting our admissions team via WhatsApp or the inquiry form below.`}
+                </p>
 
                 {(uni.city || uni.province || uni.universityType) && (
                   <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600">
@@ -208,7 +217,7 @@ export default async function UniversityDetailPage({
                   lang={lang}
                   universityId={uni.id}
                   variables={{
-                    university_name: uName,
+                    university_name: `${uName} (${uni.universityCode})`,
                     city: uni.city,
                     page_url: pageUrl,
                   }}
@@ -216,19 +225,6 @@ export default async function UniversityDetailPage({
               )}
 
               <CompareToggleButton slug={uni.slug} lang={lang} />
-
-              {/* Rule 9: Missing official website URLs must not produce buttons */}
-              {uni.officialWebsite && (
-                <a
-                  href={uni.officialWebsite}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
-                >
-                  <span>{t.common.officialWebsite}</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              )}
             </div>
           </div>
 
@@ -362,7 +358,7 @@ export default async function UniversityDetailPage({
 
                     <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                       <Link
-                        href={`/universities/${uni.slug}/programs/${prog.slug}`}
+                        href={`/universities/${uni.universityCode || uni.slug}/programs/${prog.slug}`}
                         className="text-xs font-bold text-brand-700 hover:underline"
                       >
                         {t.common.viewDetails} →

@@ -218,17 +218,15 @@ export default async function UniversitiesDirectoryPage({
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={uni.logoUrl || '/logo.jpeg'}
+                        src="/logo.jpeg"
                         alt={uName || uni.nameEn}
                         className="h-12 w-12 rounded-xl object-cover border border-slate-200"
                       />
                       <div>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 border border-amber-300 px-2 py-0.5 text-[11px] font-mono font-black text-amber-950 mb-1">
+                          {lang === 'ar' ? `كود الجامعة: ${uni.universityCode}` : `Code: ${uni.universityCode}`}
+                        </span>
                         <h2 className="font-bold text-slate-900 text-base">{uName}</h2>
-                        {uni.nameZh && (
-                          <span className="text-xs font-medium text-brand-700 block">
-                            {uni.nameZh}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -266,7 +264,7 @@ export default async function UniversitiesDirectoryPage({
 
                   <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                     <Link
-                      href={`/universities/${uni.slug}`}
+                      href={`/universities/${uni.universityCode || uni.slug}`}
                       className="rounded-xl bg-brand-700 px-4 py-2 text-xs font-bold text-white hover:bg-brand-800 transition"
                     >
                       {t.common.viewDetails}

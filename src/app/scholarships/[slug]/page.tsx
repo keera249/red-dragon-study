@@ -5,8 +5,13 @@ import { Award, Calendar, CheckCircle2, ExternalLink, ShieldCheck } from 'lucide
 import { prisma } from '@/lib/prisma';
 import { getCurrentLocale } from '@/lib/i18n-server';
 import { UI_LABELS } from '@/lib/i18n';
-import { getLocalizedText, isRecordPubliclyVisible, isValidPublicUrl } from '@/lib/visibility';
+import { getLocalizedText, isRecordPubliclyVisible } from '@/lib/visibility';
 import { evaluateDeadline } from '@/lib/deadlines';
+import {
+  generateUniversityCode,
+  getPublicUniversityName,
+  maskUniversityIdentityInText,
+} from '@/lib/university-code';
 import { PublicHeader } from '@/components/PublicHeader';
 import { PublicFooter } from '@/components/PublicFooter';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
@@ -58,21 +63,29 @@ export default async function ScholarshipDetailPage({
     .map((l) => l.university)
     .filter((u) => u && isRecordPubliclyVisible(u));
 
-  const sName = getLocalizedText(lang, sch.nameAr, sch.nameEn) || sch.nameEn;
-  const sProvider = getLocalizedText(lang, sch.providerAr, sch.providerEn);
+  let sName = getLocalizedText(lang, sch.nameAr, sch.nameEn) || sch.nameEn;
+  let sProvider = getLocalizedText(lang, sch.providerAr, sch.providerEn);
   const sTuition = getLocalizedText(lang, sch.tuitionCoverageAr, sch.tuitionCoverageEn);
   const sAccom = getLocalizedText(lang, sch.accommodationCoverageAr, sch.accommodationCoverageEn);
   const sOther = getLocalizedText(lang, sch.otherBenefitsAr, sch.otherBenefitsEn);
-  const sElig = getLocalizedText(lang, sch.eligibilityAr, sch.eligibilityEn);
+  let sElig = getLocalizedText(lang, sch.eligibilityAr, sch.eligibilityEn);
   const sLangReq = getLocalizedText(lang, sch.languageRequirementsAr, sch.languageRequirementsEn);
   const sDocs = getLocalizedText(lang, sch.requiredDocumentsAr, sch.requiredDocumentsEn);
   const sDuration = getLocalizedText(lang, sch.durationAr, sch.durationEn);
   const sRenewal = getLocalizedText(lang, sch.renewalConditionsAr, sch.renewalConditionsEn);
-  const sInstructions = getLocalizedText(
+  let sInstructions = getLocalizedText(
     lang,
     sch.applicationInstructionsAr,
     sch.applicationInstructionsEn
   );
+
+  for (const u of publishedUniversities) {
+    const uCode = generateUniversityCode(u);
+    sName = maskUniversityIdentityInText(sName, u, uCode) || sName;
+    sProvider = maskUniversityIdentityInText(sProvider, u, uCode);
+    sElig = maskUniversityIdentityInText(sElig, u, uCode);
+    sInstructions = maskUniversityIdentityInText(sInstructions, u, uCode);
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -111,18 +124,6 @@ export default async function ScholarshipDetailPage({
                     application_deadline: deadlineInfo.formattedClosingDate,
                   }}
                 />
-              )}
-
-              {isValidPublicUrl(sch.officialUrl) && (
-                <a
-                  href={sch.officialUrl!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  <span>{lang === 'ar' ? 'الموقع الرسمي للمنحة' : 'Official Scholarship Portal'}</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
               )}
             </div>
           </div>
@@ -223,15 +224,18 @@ export default async function ScholarshipDetailPage({
                 {lang === 'ar' ? 'الجامعات المرتبطة بهذه المنحة' : 'Participating Universities'}
               </h3>
               <div className="flex flex-wrap gap-2">
-                {publishedUniversities.map((u) => (
-                  <Link
-                    key={u.id}
-                    href={`/universities/${u.slug}`}
-                    className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-800 hover:border-brand-300 hover:text-brand-700"
-                  >
-                    {getLocalizedText(lang, u.nameAr, u.nameEn)}
-                  </Link>
-                ))}
+                {publishedUniversities.map((u) => {
+                  const uCode = generateUniversityCode(u);
+                  return (
+                    <Link
+                      key={u.id}
+                      href={`/universities/${uCode}`}
+                      className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-mono font-bold text-amber-950 hover:border-brand-500 hover:text-brand-800"
+                    >
+                      {getPublicUniversityName(uCode, lang)}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -243,12 +247,15 @@ export default async function ScholarshipDetailPage({
           </h2>
           <InquiryFormClient
             lang={lang}
-            universities={publishedUniversities.map((u) => ({
-              id: u.id,
-              nameEn: u.nameEn,
-              nameAr: u.nameAr,
-            }))}
-            scholarships={[{ id: sch.id, nameEn: sch.nameEn, nameAr: sch.nameAr }]}
+            universities={publishedUniversities.map((u) => {
+              const uCode = generateUniversityCode(u);
+              return {
+                id: u.id,
+                nameEn: getPublicUniversityName(uCode, 'en'),
+                nameAr: getPublicUniversityName(uCode, 'ar'),
+              };
+            })}
+            scholarships={[{ id: sch.id, nameEn: sName, nameAr: sName }]}
             defaultScholarshipId={sch.id}
           />
         </section>

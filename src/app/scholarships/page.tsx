@@ -6,6 +6,11 @@ import { getCurrentLocale } from '@/lib/i18n-server';
 import { UI_LABELS } from '@/lib/i18n';
 import { getLocalizedText } from '@/lib/visibility';
 import { evaluateDeadline } from '@/lib/deadlines';
+import {
+  generateUniversityCode,
+  getPublicUniversityName,
+  maskUniversityIdentityInText,
+} from '@/lib/university-code';
 import { PublicHeader } from '@/components/PublicHeader';
 import { PublicFooter } from '@/components/PublicFooter';
 
@@ -121,11 +126,14 @@ export default async function ScholarshipsDirectoryPage({
             <option value="ALL">
               {lang === 'ar' ? 'الجامعة:' : 'University:'} {t.common.allOptions}
             </option>
-            {universities.map((u) => (
-              <option key={u.id} value={u.id}>
-                {lang === 'ar' ? u.nameAr || u.nameEn : u.nameEn}
-              </option>
-            ))}
+            {universities.map((u) => {
+              const uCode = generateUniversityCode(u);
+              return (
+                <option key={u.id} value={u.id}>
+                  {getPublicUniversityName(uCode, lang)}
+                </option>
+              );
+            })}
           </select>
 
           <select
@@ -165,15 +173,21 @@ export default async function ScholarshipsDirectoryPage({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {items.map((sch) => {
-              const sName = getLocalizedText(lang, sch.nameAr, sch.nameEn);
-              const sProvider = getLocalizedText(lang, sch.providerAr, sch.providerEn);
+              let sName = getLocalizedText(lang, sch.nameAr, sch.nameEn);
+              let sProvider = getLocalizedText(lang, sch.providerAr, sch.providerEn);
               const sTuition = getLocalizedText(lang, sch.tuitionCoverageAr, sch.tuitionCoverageEn);
               const sAccom = getLocalizedText(
                 lang,
                 sch.accommodationCoverageAr,
                 sch.accommodationCoverageEn
               );
-              const sElig = getLocalizedText(lang, sch.eligibilityAr, sch.eligibilityEn);
+              let sElig = getLocalizedText(lang, sch.eligibilityAr, sch.eligibilityEn);
+              for (const u of sch.publishedUniversities) {
+                const uCode = generateUniversityCode(u);
+                sName = maskUniversityIdentityInText(sName, u, uCode);
+                sProvider = maskUniversityIdentityInText(sProvider, u, uCode);
+                sElig = maskUniversityIdentityInText(sElig, u, uCode);
+              }
 
               return (
                 <div
@@ -239,15 +253,18 @@ export default async function ScholarshipsDirectoryPage({
                     </Link>
                     {sch.publishedUniversities.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
-                        {sch.publishedUniversities.slice(0, 2).map((u) => (
-                          <Link
-                            key={u.id}
-                            href={`/universities/${u.slug}`}
-                            className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:text-brand-700"
-                          >
-                            {getLocalizedText(lang, u.nameAr, u.nameEn)}
-                          </Link>
-                        ))}
+                        {sch.publishedUniversities.slice(0, 2).map((u) => {
+                          const uCode = generateUniversityCode(u);
+                          return (
+                            <Link
+                              key={u.id}
+                              href={`/universities/${uCode}`}
+                              className="rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-mono font-bold text-amber-900 hover:text-brand-700"
+                            >
+                              {lang === 'ar' ? `جامعة #${uCode}` : `University #${uCode}`}
+                            </Link>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

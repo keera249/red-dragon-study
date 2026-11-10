@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
+import { generateUniversityCode } from '@/lib/university-code';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -7,7 +8,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [publishedUniversities, publishedScholarships, publishedPages] = await Promise.all([
     prisma.university.findMany({
       where: { status: 'PUBLISHED', noIndex: false },
-      select: { slug: true, updatedAt: true },
+      select: { slug: true, nameEn: true, updatedAt: true },
     }),
     prisma.scholarship.findMany({
       where: { status: 'PUBLISHED' },
@@ -54,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const uniRoutes: MetadataRoute.Sitemap = publishedUniversities.map((u) => ({
-    url: `${baseUrl}/universities/${u.slug}`,
+    url: `${baseUrl}/universities/${generateUniversityCode(u)}`,
     lastModified: u.updatedAt,
     changeFrequency: 'weekly',
     priority: 0.8,

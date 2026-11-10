@@ -32,6 +32,12 @@ import {
 import { sanitizeAuditMetadata } from '@/lib/audit';
 import { validateUploadedImageFile } from '@/lib/media-validation';
 import { sanitizePublicUniversity, searchPublicUniversities } from '@/lib/public-data';
+import {
+  generateUniversityCode,
+  getPublicUniversityName,
+  maskUniversityIdentityInText,
+  matchesUniversityCodeOrName,
+} from '@/lib/university-code';
 import { getDirection, UI_LABELS } from '@/lib/i18n';
 import { GET as getPublicInquiries, POST as postPublicInquiry } from '@/app/api/public/inquiries/route';
 import { GET as getPublicCompare } from '@/app/api/public/compare/route';
@@ -466,6 +472,49 @@ describe('Red Dragon Study — Complete Platform Automated Test Suite', () => {
       await prisma.university.delete({ where: { id: created.id } });
       const afterDelete = await prisma.university.findUnique({ where: { id: created.id } });
       expect(afterDelete).toBeNull();
+    });
+
+    it('generates deterministic university codes, hides real names and official websites publicly, and supports unified search by code or name', async () => {
+      const sampleUni = {
+        id: 'uni-sample',
+        slug: 'tsinghua-university',
+        nameEn: 'Tsinghua University',
+        nameAr: 'جامعة تسينغهوا',
+        nameZh: '清华大学',
+        city: 'Beijing',
+        province: 'Beijing',
+        officialWebsite: 'https://www.tsinghua.edu.cn/en/',
+        shortDescriptionEn: 'Tsinghua University is a top research institution in Beijing (https://www.tsinghua.edu.cn).',
+        shortDescriptionAr: 'تعد جامعة تسينغهوا في بكين من أقوى الجامعات.',
+        status: 'PUBLISHED',
+        isEnabled: true,
+      };
+
+      const code = generateUniversityCode(sampleUni);
+      expect(code).toMatch(/^UNI-\d{4}$/);
+
+      const sanitized = sanitizePublicUniversity(sampleUni) as any;
+      expect(sanitized).not.toBeNull();
+      expect(sanitized.universityCode).toBe(code);
+      expect(sanitized.nameEn).toBe(getPublicUniversityName(code, 'en'));
+      expect(sanitized.nameAr).toBe(getPublicUniversityName(code, 'ar'));
+      expect(sanitized.nameEn).not.toContain('Tsinghua');
+      expect(sanitized.nameAr).not.toContain('تسينغهوا');
+      expect(sanitized.nameZh).toBeNull();
+      expect(sanitized.officialWebsite).toBeNull();
+      expect(sanitized.shortDescriptionEn).not.toContain('Tsinghua');
+      expect(sanitized.shortDescriptionEn).not.toContain('tsinghua.edu.cn');
+      expect(sanitized.shortDescriptionAr).not.toContain('تسينغهوا');
+      // Location remains intact
+      expect(sanitized.city).toBe('Beijing');
+
+      // Unified matcher works by full code, numeric digits, or real name in any language
+      expect(matchesUniversityCodeOrName(sampleUni, code)).toBe(true);
+      expect(matchesUniversityCodeOrName(sampleUni, code.replace('UNI-', ''))).toBe(true);
+      expect(matchesUniversityCodeOrName(sampleUni, 'Tsinghua')).toBe(true);
+      expect(matchesUniversityCodeOrName(sampleUni, 'تسينغهوا')).toBe(true);
+      expect(matchesUniversityCodeOrName(sampleUni, '清华大学')).toBe(true);
+      expect(matchesUniversityCodeOrName(sampleUni, 'UNI-0000')).toBe(false);
     });
   });
 

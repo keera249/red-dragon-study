@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentLocale } from '@/lib/i18n-server';
 import { UI_LABELS } from '@/lib/i18n';
 import { getLocalizedText, hasNonEmptyText } from '@/lib/visibility';
+import { generateUniversityCode, getPublicUniversityName } from '@/lib/university-code';
 import { PublicHeader } from '@/components/PublicHeader';
 import { PublicFooter } from '@/components/PublicFooter';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
@@ -159,7 +160,14 @@ export default async function ContactPage({
               </h2>
               <InquiryFormClient
                 lang={lang}
-                universities={universities}
+                universities={universities.map((u) => {
+                  const uCode = generateUniversityCode(u);
+                  return {
+                    id: u.id,
+                    nameEn: getPublicUniversityName(uCode, 'en'),
+                    nameAr: getPublicUniversityName(uCode, 'ar'),
+                  };
+                })}
                 scholarships={scholarships}
                 privacyNotice={
                   getLocalizedText(lang, sys?.privacyNoticeAr, sys?.privacyNoticeEn) || undefined

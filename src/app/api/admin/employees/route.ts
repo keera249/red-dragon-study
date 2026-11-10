@@ -96,7 +96,48 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (body.roleCode) {
+    if (body.roleCode === 'CUSTOM') {
+      const permCodes: string[] = Array.isArray(body.customPermissions) ? body.customPermissions : [];
+      const customRoleCode = `CUSTOM_${user.id.slice(-8).toUpperCase()}`;
+      const customRole = await prisma.role.upsert({
+        where: { code: customRoleCode },
+        update: {
+          nameEn: body.customRoleName || `Custom (${user.name})`,
+          nameAr: body.customRoleName || `صلاحيات مخصصة (${user.name})`,
+          description: `Custom permissions configured for ${user.email}`,
+          isSystem: false,
+        },
+        create: {
+          code: customRoleCode,
+          nameEn: body.customRoleName || `Custom (${user.name})`,
+          nameAr: body.customRoleName || `صلاحيات مخصصة (${user.name})`,
+          description: `Custom permissions configured for ${user.email}`,
+          isSystem: false,
+        },
+      });
+
+      for (const pCode of permCodes) {
+        const meta = ALL_PERMISSIONS.find((ap) => ap.code === pCode);
+        const perm = await prisma.permission.upsert({
+          where: { code: pCode },
+          update: {},
+          create: {
+            code: pCode,
+            module: meta?.module || 'Custom',
+            description: meta?.description || pCode,
+          },
+        });
+        await prisma.rolePermission.upsert({
+          where: { roleId_permissionId: { roleId: customRole.id, permissionId: perm.id } },
+          update: {},
+          create: { roleId: customRole.id, permissionId: perm.id },
+        });
+      }
+
+      await prisma.userRole.create({
+        data: { userId: user.id, roleId: customRole.id },
+      });
+    } else if (body.roleCode) {
       const role = await prisma.role.findUnique({ where: { code: body.roleCode } });
       if (role) {
         await prisma.userRole.create({
@@ -138,6 +179,66 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
+
+    // Update User Custom Permissions directly
+    if (body.action === 'UPDATE_USER_CUSTOM_PERMISSIONS' && body.userId) {
+      const targetUser = await prisma.adminUser.findUnique({ where: { id: body.userId } });
+      if (!targetUser) {
+        return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+      }
+      const permCodes: string[] = Array.isArray(body.permissionCodes) ? body.permissionCodes : [];
+      const customRoleCode = `CUSTOM_${targetUser.id.slice(-8).toUpperCase()}`;
+
+      const customRole = await prisma.role.upsert({
+        where: { code: customRoleCode },
+        update: {
+          nameEn: `Custom (${targetUser.name})`,
+          nameAr: `صلاحيات مخصصة (${targetUser.name})`,
+          description: `Custom permissions configured for ${targetUser.email}`,
+          isSystem: false,
+        },
+        create: {
+          code: customRoleCode,
+          nameEn: `Custom (${targetUser.name})`,
+          nameAr: `صلاحيات مخصصة (${targetUser.name})`,
+          description: `Custom permissions configured for ${targetUser.email}`,
+          isSystem: false,
+        },
+      });
+
+      await prisma.rolePermission.deleteMany({ where: { roleId: customRole.id } });
+      for (const pCode of permCodes) {
+        const meta = ALL_PERMISSIONS.find((ap) => ap.code === pCode);
+        const perm = await prisma.permission.upsert({
+          where: { code: pCode },
+          update: {},
+          create: {
+            code: pCode,
+            module: meta?.module || 'Custom',
+            description: meta?.description || pCode,
+          },
+        });
+        await prisma.rolePermission.create({
+          data: { roleId: customRole.id, permissionId: perm.id },
+        });
+      }
+
+      await prisma.userRole.deleteMany({ where: { userId: targetUser.id } });
+      await prisma.userRole.create({
+        data: { userId: targetUser.id, roleId: customRole.id },
+      });
+
+      await recordAuditLog({
+        actorId: actor.id,
+        actorEmail: actor.email,
+        action: 'EMPLOYEE_CUSTOM_PERMISSIONS_UPDATED',
+        entityType: 'AdminUser',
+        entityId: targetUser.id,
+        summary: `Updated custom permissions (${permCodes.length} granted) for ${targetUser.email}`,
+      });
+
+      return NextResponse.json({ ok: true, roleCode: customRoleCode, count: permCodes.length });
+    }
 
     // Update Role Permissions
     if (body.action === 'UPDATE_ROLE_PERMISSIONS' && body.roleId) {
