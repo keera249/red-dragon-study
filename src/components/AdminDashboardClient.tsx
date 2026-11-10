@@ -42,6 +42,24 @@ import {
 } from 'lucide-react';
 import { ALL_PERMISSIONS, AuthenticatedActor, DEFAULT_ROLE_PERMISSIONS } from '@/lib/rbac';
 import { generateUniversityCode, matchesUniversityCodeOrName } from '@/lib/university-code';
+import { formatQsRankingInfo, parseQsRankingInfo } from '@/lib/university-lookup';
+import { QS_EDITION_YEAR } from '@/lib/china-universities-data';
+
+interface UniLookupResult {
+  matchedFrom: 'DATASET' | 'ONLINE' | 'DATASET+ONLINE';
+  nameEn: string;
+  nameAr: string | null;
+  nameZh: string | null;
+  city: string | null;
+  cityAr: string | null;
+  province: string | null;
+  provinceAr: string | null;
+  universityType: string | null;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  infoSourceUrl: string | null;
+  qs: { rank: string; year: number; verified: boolean; sourceUrl: string } | null;
+}
 
 const PERMISSION_ARABIC_META: Record<
   string,
@@ -364,6 +382,8 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
     accommodationFeePeriod: 'ANNUALLY',
     accommodationDescEn: 'On-campus international student residence halls.',
     accommodationDescAr: 'سكن طلابي دولي مجهز داخل الحرم الجامعي.',
+    rankingInfoEn: '',
+    rankingInfoAr: '',
   });
 
   const cancelEditingUniversity = () => {
@@ -393,7 +413,10 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
       accommodationFeePeriod: 'ANNUALLY',
       accommodationDescEn: 'On-campus international student residence halls.',
       accommodationDescAr: 'سكن طلابي دولي مجهز داخل الحرم الجامعي.',
+      rankingInfoEn: '',
+      rankingInfoAr: '',
     });
+    setUniLookup({ loading: false, result: null, suggestions: [], appliedFor: '' });
   };
 
   const startEditingUniversity = (u: any) => {
@@ -423,7 +446,10 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
       accommodationFeePeriod: u.fees?.find((f: any) => f.category === 'ACCOMMODATION')?.period || 'ANNUALLY',
       accommodationDescEn: u.accommodationDescEn || '',
       accommodationDescAr: u.accommodationDescAr || '',
+      rankingInfoEn: u.rankingInfoEn || '',
+      rankingInfoAr: u.rankingInfoAr || '',
     });
+    setUniLookup({ loading: false, result: null, suggestions: [], appliedFor: u.nameEn || '' });
 
     if (u.programs && u.programs.length > 0) {
       setUniPrograms(
@@ -620,6 +646,58 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [uniSearchQuery, setUniSearchQuery] = useState('');
   const [inspectedUniId, setInspectedUniId] = useState<string | null>(null);
+
+  // ── Auto-lookup of university info (city / province / published info / QS) while typing the name ──
+  const [uniLookup, setUniLookup] = useState<{
+    loading: boolean;
+    result: UniLookupResult | null;
+    suggestions: Array<{ nameEn: string; nameAr: string; nameZh: string; city: string; province: string }>;
+    appliedFor: string;
+  }>({ loading: false, result: null, suggestions: [], appliedFor: '' });
+  const lookupSeqRef = useRef(0);
+
+  const applyUniLookup = (r: UniLookupResult, overwrite: boolean) => {
+    setNewUni((prev) => {
+      const fill = (cur: string, val: string | null) =>
+        overwrite ? val || cur : cur.trim() ? cur : val || cur;
+      const qsInfo = r.qs?.verified ? formatQsRankingInfo(r.qs.rank, r.qs.year) : null;
+      const keepRanking = !overwrite && prev.rankingInfoEn.trim();
+      return {
+        ...prev,
+        nameAr: fill(prev.nameAr, r.nameAr),
+        nameZh: fill(prev.nameZh, r.nameZh),
+        city: r.city || prev.city,
+        province: r.province || prev.province,
+        universityType: r.universityType || prev.universityType,
+        shortDescriptionEn: fill(prev.shortDescriptionEn, r.descriptionEn),
+        shortDescriptionAr: fill(prev.shortDescriptionAr, r.descriptionAr),
+        rankingInfoEn: keepRanking ? prev.rankingInfoEn : qsInfo?.rankingInfoEn ?? prev.rankingInfoEn,
+        rankingInfoAr: keepRanking ? prev.rankingInfoAr : qsInfo?.rankingInfoAr ?? prev.rankingInfoAr,
+      };
+    });
+  };
+
+  const runUniLookup = async (name: string, autoApply: boolean) => {
+    const seq = ++lookupSeqRef.current;
+    setUniLookup((s) => ({ ...s, loading: true }));
+    try {
+      const res = await fetch(`/api/admin/universities/lookup?q=${encodeURIComponent(name)}`);
+      const data = res.ok ? await res.json() : { suggestions: [], result: null };
+      if (seq !== lookupSeqRef.current) return; // a newer lookup is in flight
+      setUniLookup({ loading: false, result: data.result, suggestions: data.suggestions || [], appliedFor: name });
+      if (data.result && autoApply) applyUniLookup(data.result, false);
+    } catch {
+      if (seq === lookupSeqRef.current) setUniLookup((s) => ({ ...s, loading: false }));
+    }
+  };
+
+  useEffect(() => {
+    const name = newUni.nameEn.trim();
+    if (!isUniFormOpen || name.length < 3 || name === uniLookup.appliedFor) return;
+    const t = setTimeout(() => runUniLookup(name, !editingUniversityId), 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newUni.nameEn, isUniFormOpen]);
 
   const [newPage, setNewPage] = useState({
     slug: '',
@@ -1271,7 +1349,7 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                      <div>
+                      <div className="relative">
                         <label className="block font-bold text-slate-700 mb-1">اسم الجامعة بالإنجليزية *</label>
                         <input
                           required
@@ -1279,7 +1357,29 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           value={newUni.nameEn}
                           onChange={(e) => setNewUni({ ...newUni, nameEn: e.target.value })}
                           className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
+                          autoComplete="off"
                         />
+                        {uniLookup.suggestions.length > 0 &&
+                          !uniLookup.suggestions.some((s) => s.nameEn === newUni.nameEn.trim()) && (
+                            <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+                              {uniLookup.suggestions.map((s) => (
+                                <button
+                                  key={s.nameEn}
+                                  type="button"
+                                  onClick={() => {
+                                    setNewUni((prev) => ({ ...prev, nameEn: s.nameEn }));
+                                    runUniLookup(s.nameEn, true);
+                                  }}
+                                  className="w-full text-right px-3 py-2 hover:bg-brand-50 border-b border-slate-100 last:border-0"
+                                >
+                                  <span className="block font-bold text-slate-900 text-[11px]" dir="ltr">{s.nameEn}</span>
+                                  <span className="block text-[10px] text-slate-500">
+                                    {s.nameAr} · {s.nameZh} · {s.city}, {s.province}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                       </div>
                       <div>
                         <label className="block font-bold text-slate-700 mb-1">اسم الجامعة بالعربية</label>
@@ -1300,6 +1400,115 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
                         />
                       </div>
+
+                      {/* Auto-lookup result card */}
+                      {(uniLookup.loading || uniLookup.result || (uniLookup.appliedFor && newUni.nameEn.trim().length >= 3)) && (
+                        <div className="md:col-span-3 rounded-2xl border-2 border-sky-200 bg-sky-50/60 p-3 space-y-2">
+                          {uniLookup.loading ? (
+                            <div className="flex items-center gap-2 text-sky-900 font-bold">
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                              <span>جاري البحث التلقائي عن موقع الجامعة والمعلومات المنشورة عنها وتصنيف QS...</span>
+                            </div>
+                          ) : uniLookup.result ? (
+                            <>
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-extrabold text-sky-950 flex items-center gap-1.5">
+                                  <Search className="h-4 w-4" />
+                                  تم العثور على الجامعة تلقائياً
+                                  <span className="text-[10px] font-bold text-sky-700 bg-white border border-sky-200 rounded-md px-1.5 py-0.5">
+                                    {uniLookup.result.matchedFrom === 'ONLINE'
+                                      ? 'مصدر: ويكيبيديا/ويكي داتا'
+                                      : uniLookup.result.matchedFrom === 'DATASET'
+                                      ? 'مصدر: قاعدة بيانات الجامعات الموثقة'
+                                      : 'مصدر: قاعدة البيانات الموثقة + ويكيبيديا'}
+                                  </span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    applyUniLookup(uniLookup.result!, true);
+                                    notify('تم تطبيق كل المعلومات التي تم العثور عليها على النموذج');
+                                  }}
+                                  className="rounded-lg bg-sky-700 hover:bg-sky-800 text-white px-3 py-1.5 text-[11px] font-bold"
+                                >
+                                  تطبيق كل المعلومات على النموذج
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                                <div className="rounded-lg bg-white border border-sky-100 p-2">
+                                  <span className="block text-slate-500">📍 المدينة</span>
+                                  <span className="font-extrabold text-slate-900">
+                                    {uniLookup.result.cityAr || uniLookup.result.city || 'غير معروف'}
+                                    {uniLookup.result.city && uniLookup.result.cityAr ? ` (${uniLookup.result.city})` : ''}
+                                  </span>
+                                </div>
+                                <div className="rounded-lg bg-white border border-sky-100 p-2">
+                                  <span className="block text-slate-500">🗺️ المقاطعة</span>
+                                  <span className="font-extrabold text-slate-900">
+                                    {uniLookup.result.provinceAr || uniLookup.result.province || 'غير معروف'}
+                                    {uniLookup.result.province && uniLookup.result.provinceAr ? ` (${uniLookup.result.province})` : ''}
+                                  </span>
+                                </div>
+                                <div className="rounded-lg bg-white border border-sky-100 p-2">
+                                  <span className="block text-slate-500">🏆 تصنيف QS {uniLookup.result.qs?.year || QS_EDITION_YEAR}</span>
+                                  {uniLookup.result.qs ? (
+                                    uniLookup.result.qs.verified ? (
+                                      <span className="font-extrabold text-emerald-800">
+                                        #{uniLookup.result.qs.rank} ✓ موثّق (يُعرض للطلاب تلقائياً)
+                                      </span>
+                                    ) : (
+                                      <span className="font-bold text-amber-800 block">
+                                        #{uniLookup.result.qs.rank} — يحتاج تأكيد
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const info = formatQsRankingInfo(uniLookup.result!.qs!.rank, uniLookup.result!.qs!.year);
+                                            setNewUni((prev) => ({ ...prev, ...info }));
+                                            notify('تم تأكيد تصنيف QS — سيظهر للطلاب بعد الحفظ');
+                                          }}
+                                          className="mr-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white px-2 py-0.5 text-[10px]"
+                                        >
+                                          تأكيد بعد المراجعة
+                                        </button>
+                                        <a
+                                          href={uniLookup.result.qs.sourceUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="mr-1 text-[10px] underline text-amber-900"
+                                        >
+                                          راجع في موقع QS
+                                        </a>
+                                      </span>
+                                    )
+                                  ) : (
+                                    <span className="font-bold text-slate-500">غير متوفر — لن يُعرض أي تصنيف (يمكنك إدخاله يدوياً)</span>
+                                  )}
+                                </div>
+                              </div>
+                              {(uniLookup.result.descriptionAr || uniLookup.result.descriptionEn) && (
+                                <div className="rounded-lg bg-white border border-sky-100 p-2 text-[11px] text-slate-700 leading-relaxed max-h-28 overflow-y-auto">
+                                  <span className="block text-slate-500 font-bold mb-0.5">📰 المعلومات المنشورة عنها:</span>
+                                  {uniLookup.result.descriptionAr || uniLookup.result.descriptionEn}
+                                  {uniLookup.result.infoSourceUrl && (
+                                    <a href={uniLookup.result.infoSourceUrl} target="_blank" rel="noreferrer" className="block mt-1 text-sky-700 underline">
+                                      المصدر
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+                              {!editingUniversityId && (
+                                <p className="text-[10px] text-sky-800">
+                                  ✅ تم تعبئة المدينة والمقاطعة والأسماء والنبذة (إن كانت فارغة) تلقائياً — راجعها قبل الحفظ.
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <div className="text-slate-600 font-semibold">
+                              لم يتم العثور على معلومات تلقائية لهذا الاسم — تأكد من كتابة الاسم الإنجليزي الرسمي أو أدخل البيانات يدوياً.
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div>
                         <label className="block font-bold text-slate-700 mb-1">المدينة (City) *</label>
@@ -1329,6 +1538,33 @@ export function AdminDashboardClient({ actor }: { actor: AuthenticatedActor }) {
                           onChange={(e) => setNewUni({ ...newUni, universityType: e.target.value })}
                           className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
                         />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">
+                          🏆 تصنيف QS العالمي (يظهر أعلى صفحة الجامعة)
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-slate-500 font-bold">#</span>
+                          <input
+                            placeholder="مثال: 47 أو 401-410 (اتركه فارغاً لإخفائه)"
+                            value={parseQsRankingInfo(newUni.rankingInfoEn)?.rank || ''}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9\-–]/g, '');
+                              if (!val) {
+                                setNewUni({ ...newUni, rankingInfoEn: '', rankingInfoAr: '' });
+                              } else {
+                                const year = parseQsRankingInfo(newUni.rankingInfoEn)?.year || QS_EDITION_YEAR;
+                                setNewUni({ ...newUni, ...formatQsRankingInfo(val, year) });
+                              }
+                            }}
+                            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-700 focus:outline-none"
+                            dir="ltr"
+                          />
+                        </div>
+                        <span className="text-[10px] text-slate-500">
+                          {newUni.rankingInfoEn ? newUni.rankingInfoEn : 'لا يوجد تصنيف — لن يظهر شيء للطلاب'}
+                        </span>
                       </div>
 
                       <div className="rounded-xl border-2 border-amber-300 bg-amber-50/70 p-3 flex flex-col justify-between">
